@@ -21,6 +21,7 @@ export default {
         invited = await invitedEvents(env.DB, guest?.id);
       const event =
         match &&
+        config.publication === "published" &&
         config.events.find(
           (e) =>
             e.id === match[2] &&

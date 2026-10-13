@@ -20,7 +20,7 @@ For a fictional guest invitation and early access to gallery/seating during deve
 npm run demo:dev
 ```
 
-The example invitation code is `DEMO-WELCOME`. Demo seeding always uses `--local`; the explicit demo Vite mode uses a generated ignored fixture with early release times. Normal development and production use `content/wedding.json`. Never deploy the demo bundle or copy local D1 state/example codes into production; `npm run deploy` builds a fresh production bundle.
+The example invitation code is `DEMO-WELCOME`. Demo seeding always uses `--local`; the explicit demo Vite mode uses `examples/wedding.json` to generate an ignored fixture with early release times, independently of your content. Normal development and production use `content/wedding.json`. Never deploy the demo bundle or copy local D1 state/example codes into production; `npm run deploy` builds a fresh production bundle.
 
 ## First Cloudflare deployment
 
@@ -33,7 +33,9 @@ npm run deploy
 
 The setup helper asks for a unique project name, opens Wrangler's Cloudflare login flow, creates/reuses that project's D1 database, applies migrations, and generates production `AUTH_SECRET` and `SETUP_TOKEN` secrets. R2 and Queues use Wrangler's resource provisioning on deployment. Account-specific bindings are stored in ignored `wrangler.instance.json`; the public template remains account-independent.
 
-Save the printed **production setup token** privately. Use the Worker URL returned by deployment to create your production host account at `/admin`. Local accounts and guest data are not transferred.
+The **production setup token** is saved in ignored, owner-only `private/production-bootstrap.json`, without printing it in logs. Use it to create your production host account at `/admin`. Local accounts and guest data are not transferred.
+
+For an agent using an existing Wrangler session, setup can run without prompts: `npm run cloudflare:setup -- --name your-wedding --skip-login --origin https://your-wedding.example`. The origin becomes the canonical URL for authentication and guest links; use that domain after attaching it. The helper parses JSONC and assigns an explicit project-specific media bucket. Keep each checkout's resources separate.
 
 The helper refuses to overwrite an existing instance file, to avoid rotating a live installation's secrets unintentionally. If setup was interrupted, keep the file and inspect the steps below before continuing. Do not delete it casually: it identifies your data resources.
 

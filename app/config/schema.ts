@@ -24,6 +24,7 @@ const venue = z.object({
 export const weddingConfigSchema = z
   .object({
     schemaVersion: z.literal(1),
+    publication: z.enum(["coming-soon", "published"]).default("published"),
     siteName: localizedSchema,
     locales: z
       .array(z.enum(["en", "zh-Hans"]))

@@ -6,6 +6,11 @@
       "type": "number",
       "const": 1
     },
+    "publication": {
+      "default": "published",
+      "type": "string",
+      "enum": ["coming-soon", "published"]
+    },
     "siteName": {
       "type": "object",
       "propertyNames": {
@@ -468,6 +473,7 @@
   },
   "required": [
     "schemaVersion",
+    "publication",
     "siteName",
     "locales",
     "defaultLocale",

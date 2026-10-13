@@ -40,6 +40,10 @@ The authoritative content is [`content/wedding.json`](content/wedding.json). Wed
 
 Start with [configuration.md](docs/configuration.md). Edit names, dates, language content, venue, events, travel, FAQs, registry links, theme, feature switches and release times. Keep existing event/gift IDs stable after collecting responses.
 
+Developing the reusable project alongside your own wedding? Follow [paired-development.md](docs/paired-development.md) to keep a private repository with shared Git history, prototype features and promote generic changes upstream. Tests and demo mode use `examples/wedding.json`, so personalizing your content does not change the integration fixtures.
+
+Set `publication` to `"coming-soon"` for a bilingual announcement before details are ready. Only names, site title, welcome message, theme and language choices reach the public page; guest features and calendar downloads remain closed. The default is `"published"`.
+
 For AI customization, start with [the copyable prompt and workflow](docs/agent-workflow.md). Codex and Claude Code share [AGENTS.md](AGENTS.md) through [CLAUDE.md](CLAUDE.md). Accessible connected sources or raw exports/uploads are supported as agent inputs; the application does not need its own Canva, spreadsheet or mailbox OAuth integration.
 
 ```sh

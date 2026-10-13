@@ -6,6 +6,8 @@ The owner works in chat with a coding agent. The repository supplies the website
 
 Copy this repository with GitHub's **Use this template**, open your copy in your coding agent, and give it a brief such as:
 
+If you will also contribute improvements to the reusable project, initialize your private repository from a Git clone preserving history instead; see [paired-development.md](paired-development.md).
+
 > Help me set up our wedding using this repository. Read AGENTS.md and docs/agent-workflow.md. Here is our guest spreadsheet, Canva invitation, timeline and relevant planning emails. Use the connections available in this session, or tell me which export you need if a link is inaccessible. We need English and Mandarin. First extract what we already know, show conflicting information, and ask only about decisions you cannot infer. Prepare the website and private guest-import plan. Help us choose which emails to send first; show the actual drafts and recipients before sending. Keep guest data and private source links out of Git.
 
 Start the local workspace:

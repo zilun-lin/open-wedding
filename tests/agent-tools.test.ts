@@ -16,10 +16,14 @@ const path = (suffix: string) => {
   return file;
 };
 const run = (args: string[]) =>
-  spawnSync(process.execPath, ["scripts/wedding.mjs", ...args], {
-    encoding: "utf8",
-    timeout: 15000,
-  });
+  spawnSync(
+    process.execPath,
+    ["scripts/wedding.mjs", ...args, "--config", "examples/wedding.json"],
+    {
+      encoding: "utf8",
+      timeout: 15000,
+    },
+  );
 afterEach(() => {
   for (const file of files.splice(0)) {
     try {

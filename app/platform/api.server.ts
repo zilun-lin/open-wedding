@@ -80,6 +80,14 @@ export async function handleApi(
     const url = new URL(request.url),
       path = url.pathname.slice(4),
       method = request.method;
+    if (
+      config.publication === "coming-soon" &&
+      !path.startsWith("/admin/") &&
+      !path.startsWith("/auth/") &&
+      path !== "/setup" &&
+      path !== "/logout"
+    )
+      throw new DomainError(404, "notFound");
     if (path.startsWith("/auth/")) {
       await rateLimit(request, env, "admin-auth", 60, 3600);
       return auth(env, url.origin).handler(request);

@@ -13,6 +13,8 @@ export const modules = [
   { id: "rsvp", label: "rsvp", feature: "rsvp" },
 ] as const;
 export function enabledModules(config: WeddingConfig) {
+  if (config.publication === "coming-soon")
+    return modules.filter((module) => module.id === "home");
   return modules.filter(
     (module) => !("feature" in module) || config.features[module.feature],
   );
@@ -21,5 +23,6 @@ export function requireFeature(
   config: WeddingConfig,
   feature: keyof WeddingConfig["features"],
 ) {
-  if (!config.features[feature]) throw new DomainError(404, "notFound");
+  if (config.publication !== "published" || !config.features[feature])
+    throw new DomainError(404, "notFound");
 }

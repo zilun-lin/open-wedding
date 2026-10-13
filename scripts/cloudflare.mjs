@@ -2,6 +2,17 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 import { randomBytes } from "node:crypto";
+import { parseArgs } from "node:util";
+import { parse } from "jsonc-parser";
+import { writePrivate } from "./private-files.mjs";
+const { values } = parseArgs({
+  options: {
+    deploy: { type: "boolean" },
+    name: { type: "string" },
+    "skip-login": { type: "boolean" },
+    origin: { type: "string" },
+  },
+});
 const command = (args, { capture = false, input } = {}) => {
   const result = spawnSync(
     process.execPath,
@@ -20,7 +31,7 @@ const command = (args, { capture = false, input } = {}) => {
     throw new Error(`Wrangler ${args.slice(0, 2).join(" ")} failed`);
   return result.stdout;
 };
-if (process.argv.includes("--deploy")) {
+if (values.deploy) {
   if (!existsSync("wrangler.instance.json"))
     throw new Error("Run npm run cloudflare:setup first.");
   command([
@@ -50,15 +61,34 @@ if (process.argv.includes("--deploy")) {
       "This provisions resources in YOUR Cloudflare account. Cloudflare may ask you to enable R2 and billing; choose your own storage budget.",
     );
     const name = (
-      await rl.question(
+      values.name ||
+      (await rl.question(
         "Unique project name (lowercase letters, numbers and hyphens): ",
-      )
+      ))
     ).trim();
     if (!/^[a-z][a-z0-9-]{2,40}$/.test(name))
       throw new Error("Use 3–41 lowercase characters, starting with a letter.");
-    command(["login"]);
-    const config = JSON.parse(readFileSync("wrangler.jsonc", "utf8"));
+    if (!values["skip-login"]) command(["login"]);
+    const errors = [];
+    const config = parse(readFileSync("wrangler.jsonc", "utf8"), errors, {
+      allowTrailingComma: true,
+    });
+    if (errors.length) throw new Error("Invalid wrangler.jsonc configuration.");
     config.name = name;
+    config.r2_buckets[0].bucket_name = `${name}-media`;
+    if (values.origin) {
+      const origin = new URL(values.origin);
+      if (
+        origin.protocol !== "https:" ||
+        origin.pathname !== "/" ||
+        origin.search ||
+        origin.hash ||
+        origin.username ||
+        origin.password
+      )
+        throw new Error("Use an exact HTTPS origin without a path.");
+      config.vars = { ...config.vars, APP_ORIGIN: origin.origin };
+    }
     config.d1_databases[0].database_name = `${name}-db`;
     config.queues.producers[0].queue = `${name}-email`;
     config.queues.consumers[0].queue = `${name}-email`;
@@ -111,6 +141,11 @@ if (process.argv.includes("--deploy")) {
     ]);
     const authSecret = randomBytes(32).toString("hex"),
       setupToken = randomBytes(24).toString("hex");
+    writePrivate(
+      "private/production-bootstrap.json",
+      { schemaVersion: 1, project: name, setupToken },
+      { overwrite: false },
+    );
     // Secrets go over stdin. No keys are written to a tracked file or process arguments.
     command(["secret", "bulk", "--config", "wrangler.instance.json"], {
       input: JSON.stringify({
@@ -119,7 +154,7 @@ if (process.argv.includes("--deploy")) {
       }),
     });
     console.log(
-      `\nProduction setup token: ${setupToken}\nSave it privately. Run npm run deploy, then open /admin on the returned URL.\nSet RESEND_API_KEY and EMAIL_FROM as Worker secrets using the instructions in docs/deployment.md.\n`,
+      "\nProduction setup token saved in ignored private/production-bootstrap.json.\nKeep it privately. Run npm run deploy, then open /admin on the returned URL.\nSet RESEND_API_KEY and EMAIL_FROM as Worker secrets using the instructions in docs/deployment.md.\n",
     );
   } finally {
     rl.close();

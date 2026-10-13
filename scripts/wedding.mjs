@@ -29,7 +29,9 @@ Outputs stay in ignored private/ with owner-only permissions. Planning never sen
 Read docs/agent-workflow.md before importing real guests or sending messages.
 Login prompts hide the password; agents can use --credentials-stdin with JSON on stdin.
 Use --out private/name.json to choose an output. Guest preparation refuses replacement
-unless --overwrite is specified; keep source IDs and record keys stable between exports.`;
+unless --overwrite is specified; keep source IDs and record keys stable between exports.
+--config examples/wedding.json selects fictional configuration for offline tests/demo tooling.
+The backend always validates plans and applies against its own deployed configuration.`;
 
 function origin(value) {
   const url = new URL(value);
@@ -114,6 +116,7 @@ async function main() {
       out: { type: "string" },
       origin: { type: "string" },
       session: { type: "string" },
+      config: { type: "string" },
       send: { type: "boolean", default: false },
       overwrite: { type: "boolean", default: false },
       "credentials-stdin": { type: "boolean", default: false },
@@ -167,7 +170,7 @@ async function main() {
     console.log("Host session saved privately. Your password was not stored.");
     return;
   }
-  const config = parseConfig(readJson("content/wedding.json"));
+  const config = parseConfig(readJson(values.config || "content/wedding.json"));
   if (command === "guests") {
     const file =
       values.file ||

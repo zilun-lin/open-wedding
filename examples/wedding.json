@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "siteName": {
+    "en": "Together, a little celebration",
+    "zh-Hans": "与你相伴，共庆美好"
+  },
+  "locales": ["en", "zh-Hans"],
+  "defaultLocale": "en",
+  "partners": [
+    {
+      "name": {
+        "en": "Alex",
+        "zh-Hans": "艾乐"
+      }
+    },
+    {
+      "name": {
+        "en": "Jordan",
+        "zh-Hans": "乔安"
+      }
+    }
+  ],
+  "celebrationAt": "2027-09-18T15:00:00+01:00",
+  "timeZone": "Europe/London",
+  "rsvpDeadline": "2027-08-01T23:59:00+01:00",
+  "welcome": {
+    "en": "Our favourite people, all in one place. Join us for a day of good food, happy tears, and a very full dance floor.",
+    "zh-Hans": "期待与最亲爱的你们欢聚一堂，一起分享美食、感动与舞池里的快乐。"
+  },
+  "story": {
+    "en": "A chance meeting, a long conversation, and a thousand little adventures later—here we are. We cannot wait to start this next chapter with you beside us.",
+    "zh-Hans": "一次偶遇，一场长谈，和无数小小的冒险，让我们走到了今天。期待与你们一起开启人生的新篇章。"
+  },
+  "contact": {
+    "name": {
+      "en": "Wedding coordinator",
+      "zh-Hans": "婚礼协调人"
+    },
+    "email": "coordinator@example.com"
+  },
+  "theme": {
+    "preset": "sage"
+  },
+  "features": {
+    "rsvp": true,
+    "seating": true,
+    "registry": true,
+    "memories": true
+  },
+  "seatingReleaseAt": "2027-09-18T08:00:00+01:00",
+  "venue": {
+    "name": {
+      "en": "The Glasshouse",
+      "zh-Hans": "玻璃花房"
+    },
+    "address": {
+      "en": "12 Garden Lane, Example City",
+      "zh-Hans": "示例城市花园路12号"
+    },
+    "directions": {
+      "en": "This is a fictional venue. Replace these details with your own directions and an accessible entrance description.",
+      "zh-Hans": "这是示例场地。请填写实际地址、交通方式和无障碍入口说明。"
+    }
+  },
+  "events": [
+    {
+      "id": "ceremony",
+      "name": {
+        "en": "The ceremony",
+        "zh-Hans": "婚礼仪式"
+      },
+      "description": {
+        "en": "Arrive from 2:30 pm, find a seat, and settle in. The ceremony begins at 3 pm.",
+        "zh-Hans": "请于下午2:30开始入场，仪式于下午3:00开始。"
+      },
+      "startsAt": "2027-09-18T15:00:00+01:00",
+      "endsAt": "2027-09-18T16:00:00+01:00",
+      "venue": {
+        "name": {
+          "en": "The garden",
+          "zh-Hans": "花园"
+        },
+        "address": {
+          "en": "The Glasshouse",
+          "zh-Hans": "玻璃花房"
+        },
+        "directions": {
+          "en": "Follow the garden path.",
+          "zh-Hans": "沿花园小径进入。"
+        }
+      },
+      "visibility": "public",
+      "rsvp": true
+    },
+    {
+      "id": "reception",
+      "name": {
+        "en": "Dinner & dancing",
+        "zh-Hans": "晚宴与舞会"
+      },
+      "description": {
+        "en": "A shared feast, a few speeches, and dancing until late. Last shuttle departs at 11:30 pm.",
+        "zh-Hans": "享受晚宴、祝福致辞和舞会。末班接驳车于晚上11:30出发。"
+      },
+      "startsAt": "2027-09-18T17:30:00+01:00",
+      "endsAt": "2027-09-18T23:30:00+01:00",
+      "venue": {
+        "name": {
+          "en": "The dining room",
+          "zh-Hans": "宴会厅"
+        },
+        "address": {
+          "en": "The Glasshouse",
+          "zh-Hans": "玻璃花房"
+        },
+        "directions": {
+          "en": "Step-free entrance at the courtyard.",
+          "zh-Hans": "庭院设有无台阶入口。"
+        }
+      },
+      "visibility": "public",
+      "rsvp": true
+    }
+  ],
+  "travel": [
+    {
+      "id": "getting-here",
+      "title": {
+        "en": "Getting here",
+        "zh-Hans": "交通指南"
+      },
+      "text": {
+        "en": "Add train stations, driving directions, parking, and shuttle times here. Include a plain address that guests can copy into their preferred map app.",
+        "zh-Hans": "请填写火车站、驾车路线、停车和接驳时间，并提供可复制到地图应用的地址。"
+      }
+    },
+    {
+      "id": "stay",
+      "title": {
+        "en": "Make a weekend of it",
+        "zh-Hans": "周末住宿"
+      },
+      "text": {
+        "en": "Add hotel recommendations, room-block booking links, prices, and booking deadlines. These examples are editable from the admin dashboard.",
+        "zh-Hans": "请添加酒店推荐、预订链接、价格和截止日期。这些示例可在管理后台编辑。"
+      }
+    }
+  ],
+  "faqs": [
+    {
+      "id": "dress",
+      "question": {
+        "en": "What should I wear?",
+        "zh-Hans": "应该穿什么？"
+      },
+      "answer": {
+        "en": "Garden-party formal. Wear something you love, with shoes comfortable enough for grass and dancing. Replace this with your dress code.",
+        "zh-Hans": "花园派对正装。请穿着喜欢的服装，以及适合草地和跳舞的舒适鞋子。请替换为你的着装要求。"
+      }
+    },
+    {
+      "id": "diet",
+      "question": {
+        "en": "Can you accommodate dietary needs?",
+        "zh-Hans": "可以安排特殊饮食吗？"
+      },
+      "answer": {
+        "en": "Please tell us about allergies and dietary requirements in your RSVP. We will confirm arrangements with the caterer.",
+        "zh-Hans": "请在回复中填写过敏和饮食需求，我们会与餐饮团队确认安排。"
+      }
+    },
+    {
+      "id": "children",
+      "question": {
+        "en": "Can I bring children or a plus-one?",
+        "zh-Hans": "可以携带儿童或伴侣吗？"
+      },
+      "answer": {
+        "en": "Your invitation lists everyone in your party. Contact the coordinator if you need to discuss an adjustment.",
+        "zh-Hans": "你的请柬会列出受邀成员。如需调整，请联系协调人。"
+      }
+    },
+    {
+      "id": "weather",
+      "question": {
+        "en": "What happens if it rains?",
+        "zh-Hans": "如果下雨怎么办？"
+      },
+      "answer": {
+        "en": "We will move the ceremony indoors. Any changes will appear on this website and be emailed to affected guests.",
+        "zh-Hans": "仪式将移至室内。任何调整都会发布在网站上，并通过邮件通知相关宾客。"
+      }
+    },
+    {
+      "id": "access",
+      "question": {
+        "en": "Is the venue accessible?",
+        "zh-Hans": "场地有无障碍设施吗？"
+      },
+      "answer": {
+        "en": "Replace this with verified step-free access, accessible toilets, and quiet-space details. You can share access requirements privately in your RSVP.",
+        "zh-Hans": "请填写经确认的无台阶通道、无障碍卫生间和安静区域信息。你可以在回复中私下告知无障碍需求。"
+      }
+    }
+  ],
+  "registry": [
+    {
+      "id": "honeymoon",
+      "title": {
+        "en": "A little adventure",
+        "zh-Hans": "旅行基金"
+      },
+      "description": {
+        "en": "Your presence is the gift. If you would like, help us make a memory on our honeymoon. Replace this example link with your fund provider.",
+        "zh-Hans": "你的到来就是最好的礼物。如愿意，也可为我们的蜜月添一份美好回忆。请替换为实际基金链接。"
+      },
+      "kind": "fund",
+      "url": "https://example.com/honeymoon",
+      "quantity": 1
+    },
+    {
+      "id": "ceramics",
+      "title": {
+        "en": "Something for our home",
+        "zh-Hans": "新家的心意"
+      },
+      "description": {
+        "en": "An example universal gift item. Guests can reserve an item before visiting the shop; purchases are confirmed by the guest.",
+        "zh-Hans": "这是通用礼物清单示例。宾客可以先预留，再前往商店购买；购买完成后由宾客确认。"
+      },
+      "kind": "gift",
+      "url": "https://example.com/ceramics",
+      "quantity": 4
+    }
+  ],
+  "media": {
+    "releaseAt": "2027-09-18T08:00:00+01:00",
+    "maxFileMb": 25,
+    "maxFilesPerHousehold": 50,
+    "maxTotalMbPerHousehold": 1000
+  }
+}

@@ -39,7 +39,7 @@ if (demo) {
   const hash = createHash("sha256").update("DEMO-WELCOME").digest("hex"),
     household = "72db2399-0453-402a-bf60-bad6bc9b7a75",
     guest = "1053b7de-6bba-4b8f-9e46-db316d1c1223";
-  const config = JSON.parse(readFileSync("content/wedding.json", "utf8"));
+  const config = JSON.parse(readFileSync("examples/wedding.json", "utf8"));
   config.media.releaseAt = "2000-01-01T00:00:00Z";
   config.seatingReleaseAt = "2000-01-01T00:00:00Z";
   config.events.push({

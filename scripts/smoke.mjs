@@ -329,7 +329,14 @@ const files = {
 const command = (args) =>
   spawnSync(
     process.execPath,
-    ["scripts/wedding.mjs", ...args, "--session", files.session],
+    [
+      "scripts/wedding.mjs",
+      ...args,
+      "--session",
+      files.session,
+      "--config",
+      "examples/wedding.json",
+    ],
     { encoding: "utf8", timeout: 30000 },
   );
 const success = (result, message) => {

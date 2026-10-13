@@ -8,6 +8,8 @@ Start with [agent-workflow.md](agent-workflow.md). Give your agent the repositor
 
 ## One source of content
 
+`publication` defaults to `"published"`. Set it to `"coming-soon"` to show only `siteName`, `partners`, `welcome`, `theme` and language choices while planning. Other configuration still validates, but is not serialized into the guest page. Timeline/travel/FAQ pages, invitation redemption, guest APIs and calendar downloads are closed. The host dashboard remains available. Switch to `"published"` and deploy after replacing and reviewing all starter details.
+
 The repository's `content/wedding.json` is authoritative. The application does not read configuration overrides from D1. Private operational state, including replies, invitations and uploads, remains in the backend when website content is redeployed.
 
 `schemaVersion` currently equals `1`. Changes to configuration structure need an explicit migration rather than silently interpreting an older configuration.

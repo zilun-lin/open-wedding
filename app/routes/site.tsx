@@ -13,6 +13,7 @@ import {
   useRevalidator,
   useLocation,
   type LoaderFunctionArgs,
+  type MetaFunction,
   redirect,
 } from "react-router";
 import { Menu, X, Flower2 } from "lucide-react";
@@ -21,6 +22,7 @@ import {
   getConfig,
   invitedEvents,
   visibleConfig,
+  announcementConfig,
 } from "../platform/config.server";
 import { guestSession } from "../platform/security.server";
 import { enabledModules } from "../config/modules";
@@ -28,6 +30,7 @@ import { localize } from "../config/schema";
 import { tr } from "../i18n";
 import { Invitation } from "../components/invitation";
 import { Notice, api } from "../components/ui";
+import Announcement from "../features/announcement";
 type Answer = {
   guest_id: string;
   event_id: string;
@@ -48,6 +51,13 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
     !enabledModules(config).some((m) => m.id === page)
   )
     throw new Response("Not found", { status: 404 });
+  if (config.publication === "coming-soon")
+    return {
+      publication: "coming-soon" as const,
+      config: announcementConfig(config),
+      locale,
+      page,
+    };
   const household = await guestSession(request, env),
     invited = await invitedEvents(env.DB, household?.id);
   const guests = household
@@ -115,6 +125,7 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
         ).results
       : [];
   return {
+    publication: "published" as const,
     config: visibleConfig(config, invited),
     locale,
     page,
@@ -128,9 +139,30 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
     media,
   };
 }
+export type WeddingSiteData = Extract<
+  Awaited<ReturnType<typeof loader>>,
+  { publication: "published" }
+>;
+export const meta: MetaFunction<typeof loader> = ({ loaderData: data }) => {
+  if (!data) return [];
+  const l = (text: Record<string, string>) =>
+    localize(text, data.locale, data.config.defaultLocale);
+  return [
+    {
+      title: `${data.config.partners.map((partner) => l(partner.name)).join(" & ")} · ${l(data.config.siteName)}`,
+    },
+    { name: "description", content: l(data.config.welcome) },
+    { name: "robots", content: "noindex, nofollow" },
+  ];
+};
 export default function Site() {
-  const data = useLoaderData<typeof loader>(),
-    { config, locale, page, household } = data,
+  const data = useLoaderData<typeof loader>();
+  if (data.publication === "coming-soon")
+    return <Announcement config={data.config} locale={data.locale} />;
+  return <WeddingSite data={data} />;
+}
+function WeddingSite({ data }: { data: WeddingSiteData }) {
+  const { config, locale, page, household } = data,
     revalidator = useRevalidator(),
     routeLocation = useLocation();
   const [menu, setMenu] = useState(false),

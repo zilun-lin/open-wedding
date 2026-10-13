@@ -10,8 +10,14 @@ import {
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { readFileSync, readdirSync } from "node:fs";
 import { parseConfig } from "../app/config/schema";
-import defaults from "../content/wedding.json";
-import { getConfig, visibleConfig } from "../app/platform/config.server";
+import defaults from "../examples/wedding.json";
+import actualContent from "../content/wedding.json";
+import {
+  getConfig,
+  visibleConfig,
+  announcementConfig,
+} from "../app/platform/config.server";
+import { enabledModules, requireFeature } from "../app/config/modules";
 import { digest, sameOrigin } from "../app/platform/security.server";
 import { saveRsvp } from "../app/domain/rsvp.server";
 import { parseGuestImport, type GuestImport } from "../app/domain/guest-import";
@@ -24,7 +30,7 @@ import { planMail, queueMail } from "../app/domain/mail.server";
 import { reserveGift } from "../app/domain/registry.server";
 import { startMedia, validSignature } from "../app/domain/media.server";
 import { deliverOutbox, outboxStatement } from "../app/platform/email.server";
-import { handleApi } from "../app/platform/api.server";
+import { handleApi as actualHandleApi } from "../app/platform/api.server";
 import { calendarFile } from "../app/domain/calendar.server";
 import { en, tr } from "../app/i18n";
 import type { AppEnv } from "../app/platform/context";
@@ -38,6 +44,12 @@ const household = "701a1d3a-6844-4b22-8b13-e5c240edbc97",
   guest = "49477725-de8c-4ed1-9c90-d2e5eb5ba5e6",
   foreign = "736d3acb-1c21-47a0-9d44-9fedb332d852";
 const config = () => parseConfig(structuredClone(defaults));
+const handleApi: typeof actualHandleApi = (
+  request,
+  env,
+  ctx,
+  settings = config(),
+) => actualHandleApi(request, env, ctx, settings);
 const payload = () => ({
   submissionId: crypto.randomUUID(),
   revision: 0,
@@ -146,11 +158,37 @@ beforeEach(async () => {
   ]);
 });
 describe("configuration and language", () => {
+  it("publishes only announcement fields before launch and closes guest operations", async () => {
+    const c = config();
+    c.publication = "coming-soon";
+    expect(Object.keys(announcementConfig(c)).sort()).toEqual([
+      "defaultLocale",
+      "locales",
+      "partners",
+      "siteName",
+      "theme",
+      "welcome",
+    ]);
+    expect(enabledModules(c).map((m) => m.id)).toEqual(["home"]);
+    expect(() => requireFeature(c, "rsvp")).toThrow();
+    for (const path of [
+      "/api/invitation",
+      "/api/rsvp",
+      "/api/media/start",
+      "/api/registry/reserve",
+    ])
+      expect((await handleApi(request(path, {}), env, ctx, c)).status).toBe(
+        404,
+      );
+    expect((await handleApi(request("/api/setup"), env, ctx, c)).status).toBe(
+      200,
+    );
+  });
   it("ignores legacy database content overrides", async () => {
     await env.DB.prepare(
       "INSERT INTO settings(key,value) VALUES ('wedding','not JSON')",
     ).run();
-    expect(getConfig()).toEqual(config());
+    expect(getConfig()).toEqual(parseConfig(actualContent));
   });
   it("validates the reusable bilingual example", () => {
     expect(config().partners[0].name.en).toBe("Alex");

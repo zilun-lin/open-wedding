@@ -1,4 +1,56 @@
 @import "tailwindcss" source(".");
+.announcement {
+  min-height: 100svh;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 28px clamp(20px, 5vw, 72px) 64px;
+}
+.announcement-languages {
+  display: flex;
+  justify-content: flex-end;
+  gap: 24px;
+  font-size: 0.85rem;
+}
+.announcement-languages a[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+.announcement-card {
+  max-width: 760px;
+  margin: clamp(24px, 8vh, 88px) auto 0;
+  text-align: center;
+}
+.announcement-flower {
+  width: 108px;
+  height: 124px;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+.announcement-card h1 {
+  font-size: clamp(3.5rem, 9vw, 7.5rem);
+  line-height: 1.08;
+  margin: 22px 0 32px;
+}
+.announcement-ampersand {
+  display: block;
+  font-size: 0.42em;
+  font-style: italic;
+  color: var(--accent);
+  margin: 14px 0;
+}
+.announcement-divider {
+  width: 48px;
+  height: 1px;
+  background: var(--accent);
+  margin: 0 auto 28px;
+}
+.announcement-message {
+  max-width: 440px;
+  margin: 0 auto;
+  font-size: 1.05rem;
+  text-wrap: pretty;
+  white-space: pre-line;
+}
 @theme {
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
