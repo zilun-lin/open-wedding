@@ -90,7 +90,6 @@ export const en = {
   createAccount: "Create host account",
   accountCreated: "Account created. Sign in to continue.",
   overview: "Overview",
-  configuration: "Website settings",
   invitations: "Invitations",
   seatingPlan: "Seating plan",
   moderation: "Media review",
@@ -102,11 +101,14 @@ export const en = {
   emails: "Email delivery",
   theme: "Theme",
   features: "Features",
-  advanced: "Full configuration (JSON)",
-  configHelp:
-    "All content is bilingual. Start with the fields below, or edit the validated JSON for events, travel, FAQs and registry links. Download a copy before making larger changes.",
-  downloadConfig: "Download configuration",
-  restoreDefaults: "Load sample configuration",
+  campaignChanged:
+    "The email draft or recipients changed. Review a fresh preview before sending.",
+  campaignTooLarge:
+    "This campaign exceeds 500 recipients. Split it into reviewed batches.",
+  importChanged:
+    "Guest data changed after the preview. Create and review a fresh import plan.",
+  importConflict:
+    "This import would remove or move existing guests or invitations. Review the conflicts first.",
   nameEn: "Name in English",
   nameZh: "Name in Mandarin",
   date: "Celebration date and time (ISO 8601)",
@@ -252,7 +254,6 @@ const zh: Record<MessageKey, string> = {
   createAccount: "创建账户",
   accountCreated: "账户已创建，请登录。",
   overview: "概览",
-  configuration: "网站设置",
   invitations: "邀请管理",
   seatingPlan: "座位安排",
   moderation: "媒体审核",
@@ -264,11 +265,10 @@ const zh: Record<MessageKey, string> = {
   emails: "邮件发送状态",
   theme: "主题",
   features: "功能",
-  advanced: "完整配置（JSON）",
-  configHelp:
-    "所有内容支持双语。可先修改下方字段，或在JSON中编辑活动、交通、常见问题和礼物链接。重大修改前请下载备份。",
-  downloadConfig: "下载配置",
-  restoreDefaults: "加载示例配置",
+  campaignChanged: "邮件内容或收件人已有变化，请核对新的预览后再发送。",
+  campaignTooLarge: "此次邮件超过500名收件人，请分批核对并发送。",
+  importChanged: "预览后宾客资料已有变化，请生成并核对新的导入计划。",
+  importConflict: "此次导入将删除或移动现有宾客或邀请，请先核对冲突。",
   nameEn: "英文姓名",
   nameZh: "中文姓名",
   date: "庆典日期与时间（ISO 8601）",

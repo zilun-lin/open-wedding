@@ -2,17 +2,17 @@
 
 Open Wedding separates celebration content from application behavior. No real couple, guests, credentials, or vendor accounts are included. Alex, Jordan, the venue and registry links are fictional examples.
 
-## Without editing code
+## With your coding agent
 
-Open `/admin` after installation, create your host account with the setup token, then choose **Website settings**. Edit names, dates, contact details, theme and feature switches. Expand the content sections for bilingual text, venue, events, travel, FAQs, registry and gallery limits. Save once to publish the changes to your own running site.
+Start with [agent-workflow.md](agent-workflow.md). Give your agent the repository and the materials you already have: a guest spreadsheet, invitation design, itinerary, notes and relevant emails. The agent can use an available authorized connector or work from uploaded/exported files. Website content is configured in `content/wedding.json`, validated by `app/config/schema.ts`, and published through a new deployment. There is no content editor in the website.
 
-The JSON editor supports bulk changes. **Download configuration** makes a portable copy. You can paste another installation's configuration into the editor; validation catches missing translations, duplicate IDs, invalid URLs, dates and time zones. Guest records and secrets are separate from this export.
+## One source of content
 
-## File defaults and saved settings
-
-`content/wedding.json` is the tracked default. `app/config/schema.ts` validates it and every admin update. Once an administrator saves settings, D1's `settings.wedding` value takes precedence over the file. Editing the file after that does not overwrite live settings: paste the new file into the dashboard to apply it.
+The repository's `content/wedding.json` is authoritative. The application does not read configuration overrides from D1. Private operational state, including replies, invitations and uploads, remains in the backend when website content is redeployed.
 
 `schemaVersion` currently equals `1`. Changes to configuration structure need an explicit migration rather than silently interpreting an older configuration.
+
+If upgrading an older installation that used **Website settings**, export its saved configuration before upgrading, validate it and move it into `content/wedding.json`. The old `settings.wedding` record is retained but ignored. No guest data is removed by this change.
 
 ## Decisions you control
 
@@ -34,7 +34,7 @@ The JSON editor supports bulk changes. **Download configuration** makes a portab
 
 Keep event and registry IDs stable after sending invitations or collecting reservations. An ID is the relationship key, not a display label. Rename the bilingual label when wording changes.
 
-An invitation grants access to every named guest in one household, without guest accounts or public name search. Generate invitations in the dashboard, copy each one-time code/link and send it privately. Links place codes in URL fragments, then clear them immediately on redemption. Rotating a code also revokes that household's current sessions.
+An invitation grants access to every named guest in one household, without guest accounts or public name search. Import reviewed households with the agent tools or create invitations in the dashboard, copy each one-time code/link and send it privately. Links place codes in URL fragments, then clear them immediately on redemption. Rotating a code also revokes that household's current sessions.
 
 Seating uses accepted responses and table capacity. Assignments are per event. Guests see their household's table labels; the full guest list stays in the host dashboard.
 

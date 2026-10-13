@@ -42,8 +42,19 @@ if (demo) {
   const config = JSON.parse(readFileSync("content/wedding.json", "utf8"));
   config.media.releaseAt = "2000-01-01T00:00:00Z";
   config.seatingReleaseAt = "2000-01-01T00:00:00Z";
+  config.events.push({
+    ...structuredClone(config.events[0]),
+    id: "private-smoke",
+    visibility: "invited",
+    name: { en: "PRIVATE-SMOKE-EVENT", "zh-Hans": "私密测试活动" },
+  });
+  writeFileSync(
+    ".wrangler/demo-wedding.json",
+    JSON.stringify(config, null, 2),
+    { mode: 0o600 },
+  );
   const quote = (value) => `'${String(value).replaceAll("'", "''")}'`;
-  const sql = `INSERT OR IGNORE INTO households(id,name,email,locale,code_hash) VALUES (${quote(household)},'Example household',NULL,'en',${quote(hash)});\nINSERT OR IGNORE INTO guests(id,household_id,name,category) VALUES (${quote(guest)},${quote(household)},'Example Guest','adult');\n${config.events.map((event) => `INSERT OR IGNORE INTO invitations(household_id,event_id) VALUES (${quote(household)},${quote(event.id)});`).join("\n")}\nINSERT OR IGNORE INTO settings(key,value) VALUES ('wedding',${quote(JSON.stringify(config))});\n`;
+  const sql = `INSERT OR IGNORE INTO households(id,name,email,locale,code_hash) VALUES (${quote(household)},'Example household',NULL,'en',${quote(hash)});\nINSERT OR IGNORE INTO guests(id,household_id,name,category) VALUES (${quote(guest)},${quote(household)},'Example Guest','adult');\n${config.events.map((event) => `INSERT OR IGNORE INTO invitations(household_id,event_id) VALUES (${quote(household)},${quote(event.id)});`).join("\n")}\n`;
   writeFileSync(".wrangler/demo.sql", sql, { mode: 0o600 });
   wrangler([
     "d1",

@@ -1,7 +1,9 @@
 // End-to-end verification against a running LOCAL dev server. Never targets a live site.
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
+import { writePrivate } from "./private-files.mjs";
 const origin = process.env.SMOKE_ORIGIN || "http://127.0.0.1:5173";
 if (!["127.0.0.1", "localhost"].includes(new URL(origin).hostname))
   throw new Error("Smoke tests are restricted to loopback hosts.");
@@ -73,20 +75,11 @@ const adminPage = await fetch(origin + "/admin", {
   headers: { Cookie: adminCookie },
 });
 check((await adminPage.text()).includes("Example Host"), "Host dashboard SSR");
-const cfg = JSON.parse(readFileSync("content/wedding.json", "utf8"));
-cfg.seatingReleaseAt = "2000-01-01T00:00:00Z";
-cfg.media.releaseAt = "2000-01-01T00:00:00Z";
-cfg.events.push({
-  ...structuredClone(cfg.events[0]),
-  id: "private-smoke",
-  visibility: "invited",
-  name: { en: "PRIVATE-SMOKE-EVENT", "zh-Hans": "私密测试活动" },
-});
 check(
-  (await call("/api/admin/config", cfg, adminCookie)).response.status === 200,
-  "Configuration save",
+  (await call("/api/admin/config", {}, adminCookie)).response.status === 404,
+  "Website editing API removed",
 );
-try {
+{
   const invite = await call(
     "/api/admin/households",
     {
@@ -160,7 +153,7 @@ try {
     (await call("/api/rsvp", {})).response.status === 401,
     "Anonymous RSVP denied",
   );
-  const forbidden = await fetch(origin + "/api/admin/config", {
+  const forbidden = await fetch(origin + "/api/admin/households", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -313,26 +306,167 @@ try {
       .status === 404,
     "Deleted object inaccessible",
   );
-  cfg.features.rsvp = false;
-  check(
-    (await call("/api/admin/config", cfg, adminCookie)).response.status === 200,
-    "Feature switch saved",
-  );
-  check(
-    (await call("/api/rsvp", payload, guestCookie)).response.status === 404,
-    "Disabled RSVP API inaccessible",
-  );
   const calendar = await fetch(origin + "/calendar/zh-Hans/ceremony.ics");
   check(
     calendar.status === 200 &&
       (await calendar.text()).includes("BEGIN:VCALENDAR"),
     "Localized calendar download",
   );
+}
+// Exercise the agent's actual commands against the compiled local Worker,
+// without replacing an owner's existing session or retaining private fixtures.
+const prefix = `private/smoke-${randomUUID()}`;
+const files = {
+  session: `${prefix}-session.json`,
+  draft: `${prefix}-guests.json`,
+  normalized: `${prefix}-normalized.json`,
+  plan: `${prefix}-plan.json`,
+  links: `${prefix}-links.json`,
+  mail: `${prefix}-mail.json`,
+  preview: `${prefix}-preview.json`,
+  exported: `${prefix}-export.json`,
+};
+const command = (args) =>
+  spawnSync(
+    process.execPath,
+    ["scripts/wedding.mjs", ...args, "--session", files.session],
+    { encoding: "utf8", timeout: 30000 },
+  );
+const success = (result, message) => {
+  check(result.status === 0, `${message}: ${result.stderr || result.stdout}`);
+  return result;
+};
+try {
+  success(
+    spawnSync(
+      process.execPath,
+      [
+        "scripts/wedding.mjs",
+        "login",
+        "--origin",
+        origin,
+        "--credentials-stdin",
+        "--session",
+        files.session,
+      ],
+      { input: JSON.stringify(credentials), encoding: "utf8", timeout: 30000 },
+    ),
+    "Agent login",
+  );
+  const source = JSON.parse(readFileSync("examples/guest-draft.json", "utf8"));
+  source.sourceId = `fictional-${randomUUID()}`;
+  source.households[0].email = "guest@example.test";
+  writePrivate(files.draft, source);
+  success(
+    command([
+      "guests",
+      "prepare",
+      "--file",
+      files.draft,
+      "--out",
+      files.normalized,
+    ]),
+    "Agent preparation",
+  );
+  success(
+    command([
+      "guests",
+      "plan",
+      "--file",
+      files.normalized,
+      "--out",
+      files.plan,
+    ]),
+    "Agent import preview",
+  );
+  check(
+    JSON.parse(readFileSync(files.plan, "utf8")).summary.create === 1,
+    "Preview detects a new household",
+  );
+  success(
+    command([
+      "guests",
+      "apply",
+      "--file",
+      files.normalized,
+      "--plan",
+      files.plan,
+      "--out",
+      files.links,
+    ]),
+    "Agent import apply",
+  );
+  check(
+    JSON.parse(readFileSync(files.links, "utf8")).links.length === 1,
+    "Agent receives private invitation file",
+  );
+  success(
+    command([
+      "guests",
+      "plan",
+      "--file",
+      files.normalized,
+      "--out",
+      files.plan,
+    ]),
+    "Agent reimport preview",
+  );
+  check(
+    JSON.parse(readFileSync(files.plan, "utf8")).summary.unchanged === 1,
+    "Agent reimport preserves stable records",
+  );
+  success(command(["export", "--out", files.exported]), "Agent guest export");
+  check(
+    !readFileSync(files.exported, "utf8").includes("code_hash"),
+    "Agent export excludes invitation hashes",
+  );
+  writePrivate(
+    files.mail,
+    JSON.parse(readFileSync("examples/mail-draft.json", "utf8")),
+  );
+  success(
+    command(["mail", "preview", "--file", files.mail, "--out", files.preview]),
+    "Agent mail preview",
+  );
+  check(
+    JSON.parse(readFileSync(files.preview, "utf8")).recipientCount > 0,
+    "Mail preview includes actual outstanding replies",
+  );
+  check(
+    command(["mail", "send", "--file", files.mail, "--plan", files.preview])
+      .status !== 0,
+    "Agent cannot send without explicit --send",
+  );
+  success(
+    command([
+      "mail",
+      "send",
+      "--file",
+      files.mail,
+      "--plan",
+      files.preview,
+      "--send",
+    ]),
+    "Local fixture campaign queue",
+  );
+  check(
+    success(
+      command([
+        "mail",
+        "send",
+        "--file",
+        files.mail,
+        "--plan",
+        files.preview,
+        "--send",
+      ]),
+      "Agent campaign retry",
+    ).stdout.includes("already queued"),
+    "Agent campaign retry deduplicates",
+  );
 } finally {
-  const original = JSON.parse(readFileSync("content/wedding.json", "utf8"));
-  original.media.releaseAt = "2000-01-01T00:00:00Z";
-  original.seatingReleaseAt = "2000-01-01T00:00:00Z";
-  await call("/api/admin/config", original, adminCookie);
+  for (const file of [...Object.values(files), `${files.preview}.html`])
+    if (existsSync(file)) unlinkSync(file);
 }
 console.log(
   `${checks} local Worker smoke checks passed. No external email was sent.`,

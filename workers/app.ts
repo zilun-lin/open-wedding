@@ -16,7 +16,7 @@ export default {
     if (path.startsWith("/api/")) response = await handleApi(request, env, ctx);
     else if (path.startsWith("/calendar/")) {
       const match = path.match(/^\/calendar\/(en|zh-Hans)\/([a-z0-9-]+)\.ics$/),
-        config = await getConfig(env.DB),
+        config = getConfig(),
         guest = await guestSession(request, env),
         invited = await invitedEvents(env.DB, guest?.id);
       const event =

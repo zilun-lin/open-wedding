@@ -39,7 +39,7 @@ type Answer = {
 };
 export async function loader({ request, params, context }: LoaderFunctionArgs) {
   const { env } = context.get(platformContext),
-    config = await getConfig(env.DB),
+    config = getConfig(),
     locale = params.locale || config.defaultLocale,
     page = params.page || "home";
   if (!params.locale) throw redirect(`/${config.defaultLocale}`);

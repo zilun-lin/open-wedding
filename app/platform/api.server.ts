@@ -11,10 +11,17 @@ import {
   rateLimit,
 } from "./security.server";
 import { getConfig, invitedEvents } from "./config.server";
-import { parseConfig, localize } from "../config/schema";
+import { type WeddingConfig } from "../config/schema";
 import { requireFeature } from "../config/modules";
 import { DomainError } from "../domain/errors";
 import { saveRsvp } from "../domain/rsvp.server";
+import { parseGuestImport } from "../domain/guest-import";
+import { mailDraftSchema } from "../domain/mail";
+import { planMail, queueMail } from "../domain/mail.server";
+import {
+  planGuestImport,
+  applyGuestImport,
+} from "../domain/guest-import.server";
 import { reserveGift } from "../domain/registry.server";
 import {
   startMedia,
@@ -22,7 +29,7 @@ import {
   checkMediaOpen,
   type MediaRow,
 } from "../domain/media.server";
-import { emailBody, outboxStatement, sweepOutbox } from "./email.server";
+import { sweepOutbox } from "./email.server";
 const json = (value: unknown, status = 200, headers: HeadersInit = {}) =>
   Response.json(value, {
     status,
@@ -66,13 +73,13 @@ export async function handleApi(
   request: Request,
   env: AppEnv,
   ctx: ExecutionContext,
+  config: WeddingConfig = getConfig(),
 ): Promise<Response> {
   try {
     sameOrigin(request, env);
     const url = new URL(request.url),
       path = url.pathname.slice(4),
-      method = request.method,
-      config = await getConfig(env.DB);
+      method = request.method;
     if (path.startsWith("/auth/")) {
       await rateLimit(request, env, "admin-auth", 60, 3600);
       return auth(env, url.origin).handler(request);
@@ -239,15 +246,82 @@ export async function handleApi(
     }
     if (path.startsWith("/admin/")) {
       const admin = await requireAdmin(request, env);
-      if (path === "/admin/config" && method === "POST") {
-        const next = parseConfig(await body(request));
-        await env.DB.prepare(
-          "INSERT INTO settings(key,value) VALUES ('wedding',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+      if (path === "/admin/mail/plan" && method === "POST") {
+        return json(
+          await planMail(
+            env.DB,
+            mailDraftSchema.parse(await body(request)),
+            config,
+            env.APP_ORIGIN || url.origin,
+          ),
+        );
+      }
+      if (path === "/admin/mail/send" && method === "POST") {
+        const input = z
+          .object({
+            draft: mailDraftSchema,
+            campaignId: z.string().uuid(),
+            fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+            confirm: z.literal(true),
+          })
+          .strict()
+          .parse(await body(request));
+        const previous = await env.DB.prepare(
+          "SELECT fingerprint,recipient_count FROM email_campaigns WHERE id=?",
         )
-          .bind(JSON.stringify(next))
-          .run();
-        await audit(env, admin.id, "config.updated");
-        return json({ saved: true });
+          .bind(input.campaignId)
+          .first<{ fingerprint: string; recipient_count: number }>();
+        if (previous) {
+          if (previous.fingerprint !== input.fingerprint)
+            throw new DomainError(409, "campaignChanged");
+          return json({
+            queued: 0,
+            previouslyQueued: previous.recipient_count,
+            replay: true,
+          });
+        }
+        const plan = await planMail(
+          env.DB,
+          input.draft,
+          config,
+          env.APP_ORIGIN || url.origin,
+        );
+        if (plan.fingerprint !== input.fingerprint)
+          throw new DomainError(409, "campaignChanged");
+        const result = await queueMail(
+          env.DB,
+          plan,
+          input.campaignId,
+          admin.id,
+        );
+        ctx.waitUntil(sweepOutbox(env).catch(() => {}));
+        return json(result);
+      }
+      if (path === "/admin/guests/plan" && method === "POST") {
+        return json(
+          await planGuestImport(
+            env.DB,
+            parseGuestImport(await body(request), config),
+          ),
+        );
+      }
+      if (path === "/admin/guests/apply" && method === "POST") {
+        const input = z
+          .object({
+            data: z.unknown(),
+            fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+          })
+          .strict()
+          .parse(await body(request));
+        return json(
+          await applyGuestImport(
+            env.DB,
+            parseGuestImport(input.data, config),
+            input.fingerprint,
+            env.APP_ORIGIN || url.origin,
+            admin.id,
+          ),
+        );
       }
       if (path === "/admin/households" && method === "POST") {
         const data = z
@@ -394,44 +468,29 @@ export async function handleApi(
         return json({ saved: true });
       }
       if (path === "/admin/announce" && method === "POST") {
-        const data = z
+        const { confirm, ...draft } = z
           .object({
-            subject: z.string().min(1).max(150),
-            message: z.string().min(1).max(5000),
+            subject: z.string(),
+            message: z.string(),
             locale: z.enum(["en", "zh-Hans"]),
             eventId: z.string().optional(),
             confirm: z.literal(true),
           })
           .parse(await body(request));
-        const rows = (
-          await env.DB.prepare(
-            "SELECT DISTINCT h.email FROM households h LEFT JOIN invitations i ON i.household_id=h.id WHERE h.email IS NOT NULL AND h.locale=? AND (? IS NULL OR i.event_id=?) LIMIT 500",
-          )
-            .bind(data.locale, data.eventId || null, data.eventId || null)
-            .all<{ email: string }>()
-        ).results;
-        const email = await emailBody(
-          data.subject,
-          data.message,
-          localize(config.siteName, data.locale),
+        const plan = await planMail(
+          env.DB,
+          mailDraftSchema.parse(draft),
+          config,
           env.APP_ORIGIN || url.origin,
         );
-        if (rows.length)
-          await env.DB.batch(
-            rows.map((row) =>
-              outboxStatement(
-                env.DB,
-                crypto.randomUUID(),
-                row.email,
-                data.subject,
-                email.html,
-                email.text,
-              ),
-            ),
-          );
-        await audit(env, admin.id, `announcement.queued:${rows.length}`);
+        const result = await queueMail(
+          env.DB,
+          plan,
+          crypto.randomUUID(),
+          admin.id,
+        );
         ctx.waitUntil(sweepOutbox(env).catch(() => {}));
-        return json({ queued: rows.length });
+        return json(result);
       }
       if (path === "/admin/export" && method === "GET") {
         const data = {

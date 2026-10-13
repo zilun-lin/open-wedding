@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "fictional-wedding-guest-list",
+  "households": [
+    {
+      "sourceKey": "household-001",
+      "name": "Example household",
+      "email": "guest@example.com",
+      "locale": "en",
+      "eventIds": ["ceremony", "reception"],
+      "guests": [
+        {
+          "sourceKey": "guest-001",
+          "name": "Example Guest",
+          "category": "adult"
+        }
+      ]
+    }
+  ]
+}

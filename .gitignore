@@ -19,3 +19,6 @@ worker-configuration.d.ts
 wrangler.instance.json
 coverage/
 *.log
+
+# Owner materials, source links, guest mappings, sessions and invitation links
+/private/

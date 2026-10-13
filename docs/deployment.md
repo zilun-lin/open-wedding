@@ -17,10 +17,10 @@ npm run dev
 For a fictional guest invitation and early access to gallery/seating during development:
 
 ```sh
-npm run demo
+npm run demo:dev
 ```
 
-The example invitation code is `DEMO-WELCOME`. Demo seeding always uses `--local`; it is never part of production deployment. Do not copy local D1 state or the example code into production.
+The example invitation code is `DEMO-WELCOME`. Demo seeding always uses `--local`; the explicit demo Vite mode uses a generated ignored fixture with early release times. Normal development and production use `content/wedding.json`. Never deploy the demo bundle or copy local D1 state/example codes into production; `npm run deploy` builds a fresh production bundle.
 
 ## First Cloudflare deployment
 
@@ -58,6 +58,8 @@ Check both the dashboard's delivery counts and Resend's delivery activity before
 ## Updates and recovery
 
 Keep the same `wrangler.instance.json` and run `npm run deploy` for updates. The helper applies pending database migrations before building and uploading the Worker. Write additive migrations so an older Worker can continue serving during an update. Never edit an applied migration.
+
+When upgrading from the original website-editor version, first copy its saved configuration into `content/wedding.json` and validate it. The new application ignores `settings.wedding`; it does not delete that legacy record or any guest data. Guest-import and email-campaign migrations are additive. Content updates now publish through deployment, while guest replies remain in D1.
 
 Wrangler commands can also be run individually:
 

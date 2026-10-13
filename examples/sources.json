@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "languages": ["en", "zh-Hans"],
+  "sources": [
+    {
+      "id": "guest-list",
+      "kind": "spreadsheet",
+      "reference": "private/uploads/guest-list.csv",
+      "revision": "Record the source revision or export timestamp here",
+      "notes": "Confirm stable keys, household grouping, language and contacts with the owner"
+    },
+    {
+      "id": "invitation-design",
+      "kind": "design",
+      "reference": "private/uploads/invitation.pdf",
+      "revision": "Record the source revision here",
+      "notes": "Review wording and assets before publication"
+    }
+  ]
+}

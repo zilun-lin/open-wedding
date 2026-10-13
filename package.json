@@ -15,11 +15,14 @@
     "cloudflare:setup": "node scripts/cloudflare.mjs",
     "test": "vitest run",
     "verify": "npm run config:check && npm run typecheck && npm test && npm run build",
-    "format": "prettier --write app workers content scripts tests docs *.ts *.json *.jsonc *.md",
-    "format:check": "prettier --check app workers content scripts tests docs *.ts *.json *.jsonc *.md",
+    "format": "prettier --write app workers content scripts tests docs examples *.ts *.json *.jsonc *.md",
+    "format:check": "prettier --check app workers content scripts tests docs examples *.ts *.json *.jsonc *.md",
     "config:check": "node scripts/check-config.mjs",
     "config:schema": "node scripts/check-config.mjs --schema",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "wedding": "node scripts/wedding.mjs",
+    "demo:dev": "npm run demo && react-router dev --mode demo",
+    "demo:preview": "node scripts/setup.mjs --demo --quiet && react-router build --mode demo && vite preview --mode demo"
   },
   "dependencies": {
     "@react-email/render": "^2.1.0",

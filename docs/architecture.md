@@ -22,7 +22,7 @@ Open Wedding is a single-installation template. Each couple owns its own deploym
 
 ```mermaid
 flowchart TD
-  Config[File defaults + validated admin settings] --> Routes[React Router loaders]
+  Config[Validated repository content] --> Routes[React Router loaders]
   Config --> API[Worker API / authorization]
   Routes --> Views[Feature views + shared components]
   API --> Domain[RSVP / registry / media services]
@@ -33,17 +33,17 @@ flowchart TD
   Queue --> Adapter[EmailProvider / Resend]
 ```
 
-- `content/wedding.json`: fictional content defaults. No secrets or guest records belong here.
+- `content/wedding.json`: authoritative website content with a fictional starter. No secrets or guest records belong here.
 - `app/config/schema.ts`: configuration contract, translation requirements, time zone and URL validation.
 - `app/config/modules.ts`: module metadata and feature gates shared by navigation and server services.
 - `app/features/`: independent guest views for home, timeline, travel, FAQ, RSVP, seating, registry and memories.
-- `app/components/`: shared controls, invitation redemption, content editing and uploader integration.
+- `app/components/`: shared controls, invitation redemption, uploader integration.
 - `app/routes/`: composition and server data loading; the host dashboard is separate from guest views.
 - `app/domain/`: behavior and validation for RSVP, gifts, media and calendar output.
 - `app/platform/`: Cloudflare context, auth, persistence access, HTTP boundaries, security helpers and email adapter.
 - `workers/app.ts`: thin runtime entry point for fetch, queue and scheduled events.
 - `migrations/`: authoritative database history; Drizzle describes Better Auth's tables only.
-- `scripts/`: local setup and account-specific deployment helpers.
+- `scripts/`: local setup, agent intake/import/mail tools and account-specific deployment helpers.
 - `tests/`: access, atomic persistence, constraints and reliability checks against local D1.
 
 Presentation modules receive a common `FeatureViewProps` contract. Providers are explicit at useful boundaries: `EmailProvider` can be replaced for tests or another sender. D1 and R2 remain deliberate Cloudflare integrations; changing the hosting platform requires new persistence/runtime implementations. The template does not claim to have a turnkey Docker or another-provider deployment.
@@ -59,6 +59,18 @@ Seat constraints require accepted attendance and reject capacity overflow in SQL
 Gift reservations use one conditional SQL write for stock and household deduplication. Holds expire after 48 hours; a guest can mark a gift purchased or release it. Funds and other registries use external links rather than collecting money in the application.
 
 Upload allocation reserves household quota before streaming. The upload endpoint binds the object to the authenticated household, checks its declared size/type and initial file signature, and uses a fixed-length stream. Only approved objects are guest-readable after the gallery release. Abandoned allocations are cleaned by the scheduled sweep.
+
+## Agent operations
+
+Agents interpret owner-provided material using their available connectors or uploads. Connector credentials and private source URLs are never part of the Worker. The ignored `private/` workspace stores provenance, unresolved decisions, normalized guests, plans, invitation links and short-lived host sessions with owner-only file permissions.
+
+The CLI authenticates through the existing host account and calls the same authorized HTTP boundary as the operations dashboard. Guest preparation assigns deterministic UUIDs from stable private source keys. A plan fingerprints the input and backend snapshot. Applying compares that fingerprint and uses atomic SQLite precondition checks to reject a race after the comparison. Updates retain invitation codes and answers, advance the household revision, and refuse removal or reassignment of existing records. Importing never emails invitations.
+
+Mail plans select actual recipients by language, event invitation and audience (`all`, `awaiting-rsvp`, `attending`), then render the exact message. Sending checks the reviewed fingerprint. A unique campaign ID and its outbox records commit in one batch; retries cannot queue the same campaign twice. The CLI requires an explicit send command. Queued messages use the existing outbox/retry mechanism. Creating previews does not send or queue mail.
+
+There is no persistent Canva, spreadsheet or mailbox connector, background source polling or spreadsheet write-back. An agent runs each sync deliberately, reconciles new source material against a fresh backend export, and prepares a reviewable update. The site is the authority for replies and seating; an old spreadsheet must not overwrite guest-confirmed information without an owner decision.
+
+Demo content is an explicit local Vite mode backed by an ignored generated fixture. Production builds always use repository content, and `npm run deploy` rebuilds in production mode. Local test fixtures never depend on live content settings.
 
 ## Adding a feature
 

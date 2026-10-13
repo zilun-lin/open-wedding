@@ -2,7 +2,7 @@
 
 A modular wedding website you can own, configure and share. English and Mandarin are included, alongside household invitations, RSVPs, private seating, registry links and a moderated photo/video album.
 
-Built for a couple's own deployment, with fictional example content and an MIT license. Make a copy with GitHub's **Use this template** button, then customize it through the host dashboard or an AI agent.
+Built for a couple's own deployment, with fictional example content and an MIT license. Make a copy with GitHub's **Use this template** button, then open it in Codex or Claude Code. Give the agent your existing guest list, invitation design and planning materials; [the intake workflow](docs/agent-workflow.md) guides it through the decisions, site customization and private operations. Website content and design live in source files, with no website editor.
 
 ## Try it locally
 
@@ -12,8 +12,7 @@ Install [Node.js 22.18+](https://nodejs.org/) and run:
 git clone https://github.com/zilun-lin/open-wedding.git
 cd open-wedding
 npm ci
-npm run demo
-npm run dev
+npm run demo:dev
 ```
 
 Open the URL printed by the dev server. Use `DEMO-WELCOME` on the RSVP page to try the fictional invitation. Visit `/admin` with the setup token printed by the demo script to create your local host account.
@@ -22,26 +21,33 @@ No Cloudflare or Resend signup is needed to try it locally. Local email stays in
 
 ## Included
 
-| Guests                                                           | Hosts                                                        |
-| ---------------------------------------------------------------- | ------------------------------------------------------------ |
-| English/Mandarin navigation and content                          | Bilingual content forms and validated JSON import/export     |
-| Timeline, travel, venue, FAQs and calendar downloads             | Three themes and shared feature switches                     |
-| Private household invitations without guest accounts             | Invitation creation, one-time links and code rotation        |
-| Per-person, per-event RSVP; dietary/access and transport notes   | Response overview and private guest-data export              |
-| Confirmation emails and editable replies before the deadline     | Durable email outbox, queue retries and email-update preview |
-| Household table assignments after a release time                 | Accepted-guest seating with table capacity enforcement       |
-| External registries/funds and quantity-limited gift reservations | Registry configuration; no payment processing to set up      |
-| Private approved photos/videos and original downloads            | Upload quotas and approval/deletion controls                 |
+| Guests                                                           | Hosts                                                         |
+| ---------------------------------------------------------------- | ------------------------------------------------------------- |
+| English/Mandarin navigation and content                          | Agent guidance and validated repository configuration         |
+| Timeline, travel, venue, FAQs and calendar downloads             | Three themes and shared feature switches                      |
+| Private household invitations without guest accounts             | Reviewed imports, stable IDs, private links and code rotation |
+| Per-person, per-event RSVP; dietary/access and transport notes   | Response overview and private guest-data export               |
+| Confirmation emails and editable replies before the deadline     | Audience previews, campaign deduplication and durable retries |
+| Household table assignments after a release time                 | Accepted-guest seating with table capacity enforcement        |
+| External registries/funds and quantity-limited gift reservations | Registry configuration; no payment processing to set up       |
+| Private approved photos/videos and original downloads            | Upload quotas and approval/deletion controls                  |
 
 The repository contains meaningful D1 integration tests, CI, contributor documentation, a security policy and [AI-agent guidance](AGENTS.md).
 
 ## Make it yours
 
-The tracked default is [`content/wedding.json`](content/wedding.json). Wedding details live there rather than inside components. The host dashboard can override those defaults without editing source or redeploying.
+The authoritative content is [`content/wedding.json`](content/wedding.json). Wedding details live there rather than inside components. Your agent edits the files and deploys an update; D1/R2 preserve private guest data and uploads. The host dashboard handles invitations, seating, moderation and email operations.
 
 Start with [configuration.md](docs/configuration.md). Edit names, dates, language content, venue, events, travel, FAQs, registry links, theme, feature switches and release times. Keep existing event/gift IDs stable after collecting responses.
 
-For AI customization, give the agent this repository, your design/content brief and `AGENTS.md`. The [architecture guide](docs/architecture.md) explains where presentation, domain rules, provider integrations and runtime wiring live.
+For AI customization, start with [the copyable prompt and workflow](docs/agent-workflow.md). Codex and Claude Code share [AGENTS.md](AGENTS.md) through [CLAUDE.md](CLAUDE.md). Accessible connected sources or raw exports/uploads are supported as agent inputs; the application does not need its own Canva, spreadsheet or mailbox OAuth integration.
+
+```sh
+npm run wedding -- intake
+npm run wedding -- --help
+```
+
+The tools prepare stable guest records, preview/apply imports, export current replies and preview/send reviewed mail. Materials, source links, credentials and invitation links stay in ignored `private/`, with owner-only file permissions. Guest imports do not send invitations. Mail previews select real recipients by language, invited event and response status; a separate explicit send uses the reviewed campaign ID.
 
 ## Deploy with two accounts
 
@@ -67,7 +73,7 @@ This is a functional starter for one wedding per deployment, not a managed servi
 
 Files are streamed to private R2 storage, with a configurable ceiling of 90 MB per file. The starter accepts JPEG, PNG, WebP, MP4 and WebM. It does not transcode video, remove EXIF metadata, scan files or resume interrupted uploads. The gallery currently shows the newest 200 approved files. Gift funds use trusted external links.
 
-Scheduled reminders, CSV invitation imports, album pagination and email bounce webhooks are documented follow-up work. See the [wedding coordinator checklist](docs/wedding-checklist.md) for operational details to confirm before inviting guests.
+Agents normalize source exports into the documented JSON guest format; arbitrary CSV/workbook parsing is not built into the CLI. Continuous source syncing, spreadsheet write-back, personalized invitation emails, scheduled reminders, album pagination and email bounce webhooks remain follow-up work. See the [wedding coordinator checklist](docs/wedding-checklist.md) for operational details to confirm before inviting guests.
 
 ## Development
 

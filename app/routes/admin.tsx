@@ -6,29 +6,16 @@ import {
   useSearchParams,
   type LoaderFunctionArgs,
 } from "react-router";
-import {
-  Flower2,
-  ArrowUpRight,
-  Check,
-  Users,
-  Mail,
-  Settings2,
-} from "lucide-react";
+import { Flower2, ArrowUpRight, Check, Users, Mail } from "lucide-react";
 import { platformContext } from "../platform/context";
 import { getConfig } from "../platform/config.server";
 import { auth } from "../platform/auth.server";
-import {
-  localize,
-  weddingConfigSchema,
-  type WeddingConfig,
-} from "../config/schema";
+import { localize } from "../config/schema";
 import { tr } from "../i18n";
 import { api, Button, Field, Notice } from "../components/ui";
-import sample from "../../content/wedding.json";
-import { ContentEditor } from "../components/content-editor";
 export async function loader({ request, context }: LoaderFunctionArgs) {
   const { env } = context.get(platformContext),
-    config = await getConfig(env.DB),
+    config = getConfig(),
     locale =
       new URL(request.url).searchParams.get("lang") === "zh-Hans"
         ? "zh-Hans"
@@ -154,7 +141,6 @@ export default function Admin() {
             <p className="eyebrow">{admin.name}</p>
             {[
               "overview",
-              "configuration",
               "invitations",
               ...(config!.features.seating ? ["seatingPlan"] : []),
               ...(config!.features.memories ? ["moderation"] : []),
@@ -218,22 +204,13 @@ export default function Admin() {
                   <p className="muted">{tr(locale, "messageHelp")}</p>
                 </div>
                 <div className="card">
-                  <Settings2 />
-                  <h2>{tr(locale, "configuration")}</h2>
-                  <p>{tr(locale, "configHelp")}</p>
+                  <Users />
+                  <h2>{tr(locale, "export")}</h2>
                   <a className="button secondary" href="/api/admin/export">
                     {tr(locale, "export")}
                   </a>
                 </div>
               </>
-            )}
-            {tab === "configuration" && (
-              <ConfigEditor
-                config={config!}
-                locale={locale}
-                busy={busy}
-                onSave={(value) => action("/admin/config", value)}
-              />
             )}
             {tab === "invitations" && (
               <Invitations data={data} busy={busy} action={action} />
@@ -556,192 +533,6 @@ function AuthForm({
         {tr(locale, "back")}
       </Link>
     </main>
-  );
-}
-function ConfigEditor({
-  config,
-  locale,
-  busy,
-  onSave,
-}: {
-  config: WeddingConfig;
-  locale: string;
-  busy: boolean;
-  onSave: (value: unknown) => unknown;
-}) {
-  const [text, setText] = useState(JSON.stringify(config, null, 2)),
-    [error, setError] = useState(""),
-    [value, setValue] = useState<WeddingConfig>(config);
-  function change(update: (draft: WeddingConfig) => void) {
-    if (!value) return;
-    const next = structuredClone(value);
-    update(next);
-    setValue(next);
-    setText(JSON.stringify(next, null, 2));
-  }
-  const download = () => {
-    const blob = new Blob([text], { type: "application/json" }),
-      url = URL.createObjectURL(blob),
-      a = document.createElement("a");
-    a.href = url;
-    a.download = "wedding.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        try {
-          const next = JSON.parse(text);
-          setError("");
-          void onSave(next);
-        } catch {
-          setError("invalidConfiguration");
-        }
-      }}
-    >
-      <p>{tr(locale, "configHelp")}</p>
-      <div className="button-row">
-        <Button type="button" className="secondary" onClick={download}>
-          {tr(locale, "downloadConfig")}
-        </Button>
-        <Button
-          type="button"
-          className="secondary"
-          onClick={() => {
-            if (confirm(tr(locale, "restoreDefaults") + "?")) {
-              setValue(weddingConfigSchema.parse(sample));
-              setText(JSON.stringify(sample, null, 2));
-            }
-          }}
-        >
-          {tr(locale, "restoreDefaults")}
-        </Button>
-      </div>
-      {value && (
-        <div className="card">
-          <div className="form-grid">
-            {value.partners.map((partner, i) => (
-              <div key={i}>
-                <Field
-                  label={`${i + 1} · ${tr(locale, "nameEn")}`}
-                  value={partner.name.en || ""}
-                  onChange={(e) =>
-                    change((d) => {
-                      d.partners[i].name.en = e.target.value;
-                    })
-                  }
-                />
-                <Field
-                  label={`${i + 1} · ${tr(locale, "nameZh")}`}
-                  value={partner.name["zh-Hans"] || ""}
-                  onChange={(e) =>
-                    change((d) => {
-                      d.partners[i].name["zh-Hans"] = e.target.value;
-                    })
-                  }
-                />
-              </div>
-            ))}
-            <Field
-              label={tr(locale, "date")}
-              value={value.celebrationAt}
-              onChange={(e) =>
-                change((d) => {
-                  d.celebrationAt = e.target.value;
-                })
-              }
-            />
-            <Field
-              label={tr(locale, "timeZone")}
-              value={value.timeZone}
-              onChange={(e) =>
-                change((d) => {
-                  d.timeZone = e.target.value;
-                })
-              }
-            />
-            <Field
-              label={tr(locale, "deadline")}
-              value={value.rsvpDeadline}
-              onChange={(e) =>
-                change((d) => {
-                  d.rsvpDeadline = e.target.value;
-                })
-              }
-            />
-            <Field
-              label={tr(locale, "contact")}
-              type="email"
-              value={value.contact.email}
-              onChange={(e) =>
-                change((d) => {
-                  d.contact.email = e.target.value;
-                })
-              }
-            />
-            <label className="field">
-              <span>{tr(locale, "theme")}</span>
-              <select
-                value={value.theme.preset}
-                onChange={(e) =>
-                  change((d) => {
-                    d.theme.preset = e.target
-                      .value as WeddingConfig["theme"]["preset"];
-                  })
-                }
-              >
-                {["sage", "terracotta", "midnight"].map((theme) => (
-                  <option key={theme}>{theme}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <fieldset className="checkbox-group">
-            <legend>{tr(locale, "features")}</legend>
-            {Object.entries(value.features).map(([key, enabled]) => (
-              <label key={key}>
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(e) =>
-                    change((d) => {
-                      d.features[key as keyof WeddingConfig["features"]] =
-                        e.target.checked;
-                    })
-                  }
-                />
-                {tr(locale, key)}
-              </label>
-            ))}
-          </fieldset>
-        </div>
-      )}
-      {value && (
-        <ContentEditor value={value} locale={locale} onChange={change} />
-      )}
-      <details className="config-details" open>
-        <summary>{tr(locale, "advanced")}</summary>
-        <textarea
-          aria-label={tr(locale, "advanced")}
-          className="code-editor"
-          spellCheck={false}
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            try {
-              const parsed = weddingConfigSchema.safeParse(
-                JSON.parse(e.target.value),
-              );
-              if (parsed.success) setValue(parsed.data);
-            } catch {}
-          }}
-        />
-      </details>
-      {error && <Notice error>{tr(locale, error)}</Notice>}
-      <Button disabled={busy}>{tr(locale, busy ? "loading" : "save")}</Button>
-    </form>
   );
 }
 function Invitations({

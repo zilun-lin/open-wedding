@@ -11,9 +11,16 @@ import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { readFileSync, readdirSync } from "node:fs";
 import { parseConfig } from "../app/config/schema";
 import defaults from "../content/wedding.json";
-import { visibleConfig } from "../app/platform/config.server";
+import { getConfig, visibleConfig } from "../app/platform/config.server";
 import { digest, sameOrigin } from "../app/platform/security.server";
 import { saveRsvp } from "../app/domain/rsvp.server";
+import { parseGuestImport, type GuestImport } from "../app/domain/guest-import";
+import {
+  planGuestImport,
+  applyGuestImport,
+} from "../app/domain/guest-import.server";
+import { mailDraftSchema } from "../app/domain/mail";
+import { planMail, queueMail } from "../app/domain/mail.server";
 import { reserveGift } from "../app/domain/registry.server";
 import { startMedia, validSignature } from "../app/domain/media.server";
 import { deliverOutbox, outboxStatement } from "../app/platform/email.server";
@@ -95,6 +102,8 @@ afterEach(async () => {
 beforeEach(async () => {
   await env.DB.batch(
     [
+      "guest_imports",
+      "email_campaigns",
       "seats",
       "seating_tables",
       "reservations",
@@ -137,6 +146,12 @@ beforeEach(async () => {
   ]);
 });
 describe("configuration and language", () => {
+  it("ignores legacy database content overrides", async () => {
+    await env.DB.prepare(
+      "INSERT INTO settings(key,value) VALUES ('wedding','not JSON')",
+    ).run();
+    expect(getConfig()).toEqual(config());
+  });
   it("validates the reusable bilingual example", () => {
     expect(config().partners[0].name.en).toBe("Alex");
   });
@@ -174,6 +189,486 @@ describe("configuration and language", () => {
     const ics = calendarFile(c.events[0], "en");
     expect(ics.match(/\r\nBEGIN:VEVENT/g)).toHaveLength(1);
     expect(ics).toContain("DTSTART:20270918T140000Z");
+  });
+});
+
+describe("reviewed guest imports", () => {
+  const existing = (): GuestImport => ({
+    schemaVersion: 1,
+    households: [
+      {
+        id: household,
+        name: "Test household",
+        email: null,
+        locale: "en",
+        eventIds: config().events.map((e) => e.id),
+        guests: [{ id: guest, name: "Test Guest", category: "adult" }],
+      },
+    ],
+  });
+  const fresh = (): GuestImport => ({
+    schemaVersion: 1,
+    households: [
+      {
+        id: crypto.randomUUID(),
+        name: "New household",
+        email: "new@example.com",
+        locale: "en",
+        eventIds: ["ceremony"],
+        guests: [
+          { id: crypto.randomUUID(), name: "New Guest", category: "adult" },
+        ],
+      },
+    ],
+  });
+  it("rejects duplicate keys, unknown events and disabled languages", () => {
+    const input = existing();
+    input.households.push(structuredClone(input.households[0]));
+    expect(() => parseGuestImport(input, config())).toThrow();
+    const unknown = fresh();
+    unknown.households[0].eventIds = ["unknown"];
+    expect(() => parseGuestImport(unknown, config())).toThrow();
+    const c = config();
+    c.locales = ["zh-Hans"];
+    expect(() => parseGuestImport(fresh(), c)).toThrow();
+  });
+  it("previews without creating guests or sending invitations", async () => {
+    const plan = await planGuestImport(env.DB, fresh());
+    expect(plan.summary.create).toBe(1);
+    expect(
+      (await env.DB.prepare("SELECT * FROM households").all()).results,
+    ).toHaveLength(2);
+    expect(
+      (await env.DB.prepare("SELECT * FROM outbox").all()).results,
+    ).toHaveLength(0);
+  });
+  it("creates stable records once and returns private links only on creation", async () => {
+    const data = fresh(),
+      plan = await planGuestImport(env.DB, data);
+    const result = await applyGuestImport(
+      env.DB,
+      data,
+      plan.fingerprint,
+      "http://localhost",
+      "host",
+    );
+    expect(result.links).toHaveLength(1);
+    const stored = await env.DB.prepare(
+      "SELECT code_hash FROM households WHERE id=?",
+    )
+      .bind(data.households[0].id)
+      .first<{ code_hash: string }>();
+    expect(stored?.code_hash).toBe(await digest(result.links[0].code));
+    const next = await planGuestImport(env.DB, data);
+    expect(next.summary.unchanged).toBe(1);
+    expect(
+      (
+        await applyGuestImport(
+          env.DB,
+          data,
+          next.fingerprint,
+          "http://localhost",
+          "host",
+        )
+      ).links,
+    ).toEqual([]);
+    expect(
+      (await env.DB.prepare("SELECT * FROM outbox").all()).results,
+    ).toHaveLength(0);
+  });
+  it("updates reviewed metadata while retaining answers and invitation codes", async () => {
+    await saveRsvp(env, config(), household, payload(), "http://localhost");
+    const data = existing();
+    data.households[0].name = "Updated household";
+    data.households[0].email = "updated@example.com";
+    data.households[0].guests[0].name = "Updated Guest";
+    const plan = await planGuestImport(env.DB, data);
+    expect(plan.changes[0].fields).toContain("email");
+    await applyGuestImport(
+      env.DB,
+      data,
+      plan.fingerprint,
+      "http://localhost",
+      "host",
+    );
+    expect(
+      await env.DB.prepare(
+        "SELECT name,email,revision,code_hash FROM households WHERE id=?",
+      )
+        .bind(household)
+        .first(),
+    ).toMatchObject({
+      name: "Updated household",
+      email: "updated@example.com",
+      revision: 2,
+      code_hash: await digest("test-invitation-code"),
+    });
+    expect(
+      (await env.DB.prepare("SELECT * FROM rsvps").all()).results,
+    ).toHaveLength(2);
+    const stale = payload();
+    stale.revision = 1;
+    await expect(
+      saveRsvp(env, config(), household, stale, "http://localhost"),
+    ).rejects.toThrow("rsvpConflict");
+  });
+  it("rejects changed inputs and stale backend previews", async () => {
+    const data = fresh(),
+      plan = await planGuestImport(env.DB, data);
+    data.households[0].email = "changed@example.com";
+    await expect(
+      applyGuestImport(
+        env.DB,
+        data,
+        plan.fingerprint,
+        "http://localhost",
+        "host",
+      ),
+    ).rejects.toThrow("importChanged");
+    const current = existing(),
+      review = await planGuestImport(env.DB, current);
+    await env.DB.prepare(
+      "UPDATE households SET email='latest@example.com' WHERE id=?",
+    )
+      .bind(household)
+      .run();
+    await expect(
+      applyGuestImport(
+        env.DB,
+        current,
+        review.fingerprint,
+        "http://localhost",
+        "host",
+      ),
+    ).rejects.toThrow("importChanged");
+  });
+  it("allows an unrelated household to reply while an import is reviewed", async () => {
+    const data = fresh(),
+      plan = await planGuestImport(env.DB, data);
+    await env.DB.prepare("UPDATE households SET revision=revision+1 WHERE id=?")
+      .bind(other)
+      .run();
+    expect(
+      (
+        await applyGuestImport(
+          env.DB,
+          data,
+          plan.fingerprint,
+          "http://localhost",
+          "host",
+        )
+      ).summary.create,
+    ).toBe(1);
+  });
+  it("rejects removals and moving a guest between households", async () => {
+    const data = existing();
+    data.households[0].eventIds = [];
+    const plan = await planGuestImport(env.DB, data);
+    expect(plan.conflicts[0].reason).toBe("invitationRemovalRequiresReview");
+    await expect(
+      applyGuestImport(
+        env.DB,
+        data,
+        plan.fingerprint,
+        "http://localhost",
+        "host",
+      ),
+    ).rejects.toThrow("importConflict");
+    const move = fresh();
+    move.households[0].guests[0].id = guest;
+    expect((await planGuestImport(env.DB, move)).conflicts[0].reason).toBe(
+      "guestBelongsToAnotherHousehold",
+    );
+    const remove = existing();
+    remove.households[0].guests[0].id = crypto.randomUUID();
+    expect(
+      (await planGuestImport(env.DB, remove)).conflicts.some(
+        (c) => c.reason === "guestRemovalRequiresReview",
+      ),
+    ).toBe(true);
+  });
+  it("rolls back an entire import if a guest reply races the atomic write", async () => {
+    const added = fresh(),
+      changed = existing();
+    changed.households[0].name = "Proposed name";
+    const data = {
+        schemaVersion: 1 as const,
+        households: [...added.households, ...changed.households],
+      },
+      plan = await planGuestImport(env.DB, data);
+    const racing = {
+      prepare: (query: string) => env.DB.prepare(query),
+      batch: async (statements: D1PreparedStatement[]) => {
+        await env.DB.prepare(
+          "UPDATE households SET revision=revision+1 WHERE id=?",
+        )
+          .bind(household)
+          .run();
+        return env.DB.batch(statements);
+      },
+    } as unknown as D1Database;
+    await expect(
+      applyGuestImport(
+        racing,
+        data,
+        plan.fingerprint,
+        "http://localhost",
+        "host",
+      ),
+    ).rejects.toThrow("importChanged");
+    expect(
+      await env.DB.prepare("SELECT name,revision FROM households WHERE id=?")
+        .bind(household)
+        .first(),
+    ).toEqual({ name: "Test household", revision: 1 });
+    expect(
+      await env.DB.prepare("SELECT id FROM households WHERE id=?")
+        .bind(added.households[0].id)
+        .first(),
+    ).toBeNull();
+    expect(
+      (await env.DB.prepare("SELECT * FROM guest_imports").all()).results,
+    ).toHaveLength(0);
+  });
+  it("rolls back if another household claims a new guest ID during the import", async () => {
+    const data = fresh(),
+      plan = await planGuestImport(env.DB, data),
+      incoming = data.households[0];
+    const racing = {
+      prepare: (query: string) => env.DB.prepare(query),
+      batch: async (statements: D1PreparedStatement[]) => {
+        await env.DB.prepare(
+          "INSERT INTO guests(id,household_id,name,category) VALUES (?,?,'Concurrent Guest','adult')",
+        )
+          .bind(incoming.guests[0].id, other)
+          .run();
+        return env.DB.batch(statements);
+      },
+    } as unknown as D1Database;
+    await expect(
+      applyGuestImport(
+        racing,
+        data,
+        plan.fingerprint,
+        "http://localhost",
+        "host",
+      ),
+    ).rejects.toThrow("importChanged");
+    expect(
+      await env.DB.prepare("SELECT id FROM households WHERE id=?")
+        .bind(incoming.id)
+        .first(),
+    ).toBeNull();
+    expect(
+      await env.DB.prepare("SELECT household_id FROM guests WHERE id=?")
+        .bind(incoming.guests[0].id)
+        .first(),
+    ).toEqual({ household_id: other });
+  });
+});
+
+describe("reviewed email campaigns", () => {
+  const draft = () =>
+    mailDraftSchema.parse({
+      subject: "Please RSVP",
+      message: "Use your private invitation.",
+      locale: "en",
+      eventId: "ceremony",
+      audience: "awaiting-rsvp",
+    });
+  it("selects actual missing replies and attending guests without queueing", async () => {
+    await env.DB.prepare(
+      "UPDATE households SET email='guest@example.com' WHERE id=?",
+    )
+      .bind(household)
+      .run();
+    const plan = await planMail(env.DB, draft(), config(), "http://localhost");
+    expect(plan.recipients).toEqual(["guest@example.com"]);
+    expect(
+      (await env.DB.prepare("SELECT * FROM outbox").all()).results,
+    ).toHaveLength(0);
+    await saveRsvp(env, config(), household, payload(), "http://localhost");
+    expect(
+      (await planMail(env.DB, draft(), config(), "http://localhost"))
+        .recipients,
+    ).toEqual([]);
+    expect(
+      (
+        await planMail(
+          env.DB,
+          { ...draft(), audience: "attending" },
+          config(),
+          "http://localhost",
+        )
+      ).recipients,
+    ).toEqual(["guest@example.com"]);
+  });
+  it("respects language, invitations and missing contacts", async () => {
+    const noEmail = await planMail(
+      env.DB,
+      draft(),
+      config(),
+      "http://localhost",
+    );
+    expect(noEmail.missingEmailHouseholds).toBe(1);
+    await env.DB.prepare(
+      "UPDATE households SET email='wrong-language@example.com',locale='zh-Hans' WHERE id=?",
+    )
+      .bind(household)
+      .run();
+    await env.DB.prepare(
+      "UPDATE households SET email='uninvited@example.com' WHERE id=?",
+    )
+      .bind(other)
+      .run();
+    expect(
+      (await planMail(env.DB, draft(), config(), "http://localhost"))
+        .recipients,
+    ).toEqual([]);
+    expect(
+      (
+        await planMail(
+          env.DB,
+          { ...draft(), locale: "zh-Hans" },
+          config(),
+          "http://localhost",
+        )
+      ).recipients,
+    ).toEqual(["wrong-language@example.com"]);
+    await expect(
+      planMail(
+        env.DB,
+        { ...draft(), eventId: "unknown" },
+        config(),
+        "http://localhost",
+      ),
+    ).rejects.toThrow("invalidInvitation");
+  });
+  it("queues a campaign exactly once even for concurrent retries", async () => {
+    await env.DB.prepare(
+      "UPDATE households SET email='guest@example.com' WHERE id=?",
+    )
+      .bind(household)
+      .run();
+    const plan = await planMail(env.DB, draft(), config(), "http://localhost"),
+      id = crypto.randomUUID();
+    await Promise.all([
+      queueMail(env.DB, plan, id, "host"),
+      queueMail(env.DB, plan, id, "host"),
+    ]);
+    expect(
+      (await env.DB.prepare("SELECT * FROM outbox").all()).results,
+    ).toHaveLength(1);
+    expect((await queueMail(env.DB, plan, id, "host")).replay).toBe(true);
+    const changed = await planMail(
+      env.DB,
+      { ...draft(), subject: "Changed" },
+      config(),
+      "http://localhost",
+    );
+    await expect(queueMail(env.DB, changed, id, "host")).rejects.toThrow(
+      "campaignChanged",
+    );
+  });
+  it("rejects stale previews and safely retries a sent campaign after its audience changes", async () => {
+    const setup = await handleApi(
+      request("/api/setup", {
+        token: env.SETUP_TOKEN,
+        name: "Host",
+        email: "host@example.com",
+        password: "long-test-password",
+      }),
+      env,
+      ctx,
+    );
+    expect(setup.status).toBe(200);
+    const login = await handleApi(
+      request("/api/auth/sign-in/email", {
+        email: "host@example.com",
+        password: "long-test-password",
+      }),
+      env,
+      ctx,
+    );
+    const cookie = login.headers
+      .getSetCookie()
+      .map((value) => value.split(";")[0])
+      .join("; ");
+    const planned = await handleApi(
+      request("/api/admin/mail/plan", draft(), { Cookie: cookie }),
+      env,
+      ctx,
+    );
+    const preview = (await planned.json()) as { fingerprint: string };
+    await env.DB.prepare(
+      "UPDATE households SET email='new@example.com' WHERE id=?",
+    )
+      .bind(household)
+      .run();
+    const sent = await handleApi(
+      request(
+        "/api/admin/mail/send",
+        {
+          draft: draft(),
+          campaignId: crypto.randomUUID(),
+          fingerprint: preview.fingerprint,
+          confirm: true,
+        },
+        { Cookie: cookie },
+      ),
+      env,
+      ctx,
+    );
+    expect(sent.status).toBe(409);
+    expect(
+      (await env.DB.prepare("SELECT * FROM outbox").all()).results,
+    ).toHaveLength(0);
+    const updated = await planMail(
+      env.DB,
+      draft(),
+      config(),
+      "http://localhost",
+    );
+    const campaign = {
+      draft: draft(),
+      campaignId: crypto.randomUUID(),
+      fingerprint: updated.fingerprint,
+      confirm: true,
+    };
+    const queued = await handleApi(
+      request("/api/admin/mail/send", campaign, { Cookie: cookie }),
+      env,
+      ctx,
+    );
+    expect(await queued.json()).toMatchObject({ queued: 1, replay: false });
+    await env.DB.prepare("UPDATE households SET locale='zh-Hans' WHERE id=?")
+      .bind(household)
+      .run();
+    const retry = await handleApi(
+      request("/api/admin/mail/send", campaign, { Cookie: cookie }),
+      env,
+      ctx,
+    );
+    expect(await retry.json()).toMatchObject({
+      queued: 0,
+      previouslyQueued: 1,
+      replay: true,
+    });
+    expect(
+      (await env.DB.prepare("SELECT * FROM outbox").all()).results,
+    ).toHaveLength(1);
+    expect(
+      (await handleApi(request("/api/admin/guests/plan", {}), env, ctx)).status,
+    ).toBe(401);
+    expect(
+      (
+        await handleApi(
+          request("/api/admin/config", {}, { Cookie: cookie }),
+          env,
+          ctx,
+        )
+      ).status,
+    ).toBe(404);
   });
 });
 describe("RSVP", () => {
@@ -403,9 +898,6 @@ describe("HTTP access boundaries", () => {
     });
     await env.DB.batch([
       env.DB.prepare(
-        "INSERT INTO settings(key,value) VALUES ('wedding',?)",
-      ).bind(JSON.stringify(c)),
-      env.DB.prepare(
         "INSERT INTO guest_sessions(token_hash,household_id,expires_at) VALUES (?,?,?)",
       ).bind(await digest(token), household, Date.now() + 60000),
       env.DB.prepare(
@@ -418,6 +910,7 @@ describe("HTTP access boundaries", () => {
       }),
       env,
       ctx,
+      c,
     );
     expect(full.status).toBe(200);
     expect(full.headers.has("Content-Range")).toBe(false);
@@ -429,6 +922,7 @@ describe("HTTP access boundaries", () => {
       }),
       env,
       ctx,
+      c,
     );
     expect(partial.status).toBe(206);
     expect(partial.headers.get("Content-Range")).toBe("bytes 0-7/16");

@@ -11,3 +11,7 @@ Original media is not transcoded, scanned or stripped of metadata. Moderation is
 All basic celebration information is public by design. `noindex` does not make it private. Deploy a separate access gate if your event requires the entire website to be private.
 
 The application currently supports one initial host account. Public signup remains disabled. Password reset requires working email; deployment recovery is documented in `docs/deployment.md`.
+
+Owner source materials and CLI sessions live in ignored `private/`. The tools write owner-only files and refuse outputs outside that directory or through symlinks. A saved host session is a credential: protect local backups and remove it when finished on a shared computer. Private materials must never be imported into the web bundle or copied into public assets without the owner's decision.
+
+Guest imports require a reviewed snapshot and preserve replies/codes. Atomic database preconditions reject concurrent changes; imports refuse record removals and reassignment. Mail plans expose recipient details only to an authenticated host. Sending verifies the reviewed content/recipient fingerprint and queues a campaign once. These controls do not replace the owner's choice of what to publish or whom to contact.
