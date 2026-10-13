@@ -1,0 +1,7 @@
+# Copying this file is optional: npm run setup generates real local secrets.
+AUTH_SECRET=replace-with-at-least-32-random-characters
+SETUP_TOKEN=replace-with-a-long-random-bootstrap-token
+# Set all three for real email delivery. Keep Resend's DNS-verified sender.
+# RESEND_API_KEY=re_example
+# EMAIL_FROM=Celebration <hello@example.com>
+# APP_ORIGIN=https://your-site.example.com

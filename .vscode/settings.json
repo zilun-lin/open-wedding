@@ -1,0 +1,4 @@
+{
+  "json.schemas": [{ "fileMatch": ["content/wedding.json"], "url": "./content/wedding.schema.json" }],
+  "files.associations": { "wrangler.jsonc": "jsonc" }
+}

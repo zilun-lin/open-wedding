@@ -1,0 +1,8 @@
+node_modules
+build
+.wrangler
+.react-router
+worker-configuration.d.ts
+package-lock.json
+wrangler.instance.json
+.dev.vars

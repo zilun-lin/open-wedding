@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      cloudflare:
+        patterns: ['@cloudflare/*', 'wrangler', 'miniflare']
+      react-router:
+        patterns: ['react-router', '@react-router/*']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "open-wedding",
+  "main": "workers/app.ts",
+  "compatibility_date": "2026-10-06",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [{ "binding": "DB", "migrations_dir": "migrations" }],
+  "r2_buckets": [{ "binding": "MEDIA" }],
+  "queues": {
+    "producers": [{ "binding": "EMAIL_QUEUE", "queue": "open-wedding-email" }],
+    "consumers": [
+      {
+        "queue": "open-wedding-email",
+        "max_batch_size": 10,
+        "max_batch_timeout": 10,
+      },
+    ],
+  },
+  "triggers": { "crons": ["*/10 * * * *"] },
+  "observability": { "enabled": true },
+  "upload_source_maps": true,
+}

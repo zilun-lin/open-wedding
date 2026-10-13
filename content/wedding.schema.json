@@ -1,0 +1,492 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "siteName": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 2
+      },
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 5000
+      }
+    },
+    "locales": {
+      "minItems": 1,
+      "maxItems": 2,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["en", "zh-Hans"]
+      }
+    },
+    "defaultLocale": {
+      "type": "string",
+      "enum": ["en", "zh-Hans"]
+    },
+    "partners": {
+      "minItems": 2,
+      "maxItems": 2,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 2
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 5000
+            }
+          }
+        },
+        "required": ["name"],
+        "additionalProperties": false
+      }
+    },
+    "celebrationAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "timeZone": {
+      "type": "string"
+    },
+    "rsvpDeadline": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "welcome": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 2
+      },
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 5000
+      }
+    },
+    "story": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 2
+      },
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 5000
+      }
+    },
+    "contact": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 2
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 5000
+          }
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 50
+        }
+      },
+      "required": ["name", "email"],
+      "additionalProperties": false
+    },
+    "theme": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "type": "string",
+          "enum": ["sage", "terracotta", "midnight"]
+        },
+        "accent": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        }
+      },
+      "required": ["preset"],
+      "additionalProperties": false
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "rsvp": {
+          "type": "boolean"
+        },
+        "seating": {
+          "type": "boolean"
+        },
+        "registry": {
+          "type": "boolean"
+        },
+        "memories": {
+          "type": "boolean"
+        }
+      },
+      "required": ["rsvp", "seating", "registry", "memories"],
+      "additionalProperties": false
+    },
+    "seatingReleaseAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "venue": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 2
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 5000
+          }
+        },
+        "address": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 2
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 5000
+          }
+        },
+        "directions": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 2
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 5000
+          }
+        },
+        "mapUrl": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": ["name", "address", "directions"],
+      "additionalProperties": false
+    },
+    "events": {
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,60}$"
+          },
+          "name": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 2
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 5000
+            }
+          },
+          "description": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 2
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 5000
+            }
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "venue": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 2
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 5000
+                }
+              },
+              "address": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 2
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 5000
+                }
+              },
+              "directions": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 2
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 5000
+                }
+              },
+              "mapUrl": {
+                "type": "string",
+                "format": "uri"
+              }
+            },
+            "required": ["name", "address", "directions"],
+            "additionalProperties": false
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["public", "invited"]
+          },
+          "rsvp": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "startsAt",
+          "endsAt",
+          "venue",
+          "visibility",
+          "rsvp"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "travel": {
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,60}$"
+          },
+          "title": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 2
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 5000
+            }
+          },
+          "text": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 2
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 5000
+            }
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": ["id", "title", "text"],
+        "additionalProperties": false
+      }
+    },
+    "faqs": {
+      "maxItems": 60,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,60}$"
+          },
+          "question": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 2
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 5000
+            }
+          },
+          "answer": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 2
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 5000
+            }
+          }
+        },
+        "required": ["id", "question", "answer"],
+        "additionalProperties": false
+      }
+    },
+    "registry": {
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,60}$"
+          },
+          "title": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 2
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 5000
+            }
+          },
+          "description": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 2
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 5000
+            }
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["link", "gift", "fund"]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": ["id", "title", "description", "kind", "url", "quantity"],
+        "additionalProperties": false
+      }
+    },
+    "media": {
+      "type": "object",
+      "properties": {
+        "releaseAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "maxFileMb": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 90
+        },
+        "maxFilesPerHousehold": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "maxTotalMbPerHousehold": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000
+        }
+      },
+      "required": [
+        "releaseAt",
+        "maxFileMb",
+        "maxFilesPerHousehold",
+        "maxTotalMbPerHousehold"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "siteName",
+    "locales",
+    "defaultLocale",
+    "partners",
+    "celebrationAt",
+    "timeZone",
+    "rsvpDeadline",
+    "welcome",
+    "story",
+    "contact",
+    "theme",
+    "features",
+    "seatingReleaseAt",
+    "venue",
+    "events",
+    "travel",
+    "faqs",
+    "registry",
+    "media"
+  ],
+  "additionalProperties": false
+}
