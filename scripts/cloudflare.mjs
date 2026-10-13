@@ -5,6 +5,10 @@ import { randomBytes } from "node:crypto";
 import { parseArgs } from "node:util";
 import { parse } from "jsonc-parser";
 import { writePrivate } from "./private-files.mjs";
+import { parseConfig } from "../app/config/schema.ts";
+const wedding = parseConfig(
+  JSON.parse(readFileSync("content/wedding.json", "utf8")),
+);
 const { values } = parseArgs({
   options: {
     deploy: { type: "boolean" },
@@ -34,6 +38,16 @@ const command = (args, { capture = false, input } = {}) => {
 if (values.deploy) {
   if (!existsSync("wrangler.instance.json"))
     throw new Error("Run npm run cloudflare:setup first.");
+  const instance = JSON.parse(readFileSync("wrangler.instance.json", "utf8"));
+  if (
+    wedding.features.memories &&
+    !instance.r2_buckets?.some(
+      (bucket) => bucket.binding === "MEDIA" && bucket.bucket_name,
+    )
+  )
+    throw new Error(
+      "Enable R2, create a private bucket and add its MEDIA binding to wrangler.instance.json before enabling memories. See docs/deployment.md.",
+    );
   command([
     "d1",
     "migrations",
@@ -75,7 +89,9 @@ if (values.deploy) {
     });
     if (errors.length) throw new Error("Invalid wrangler.jsonc configuration.");
     config.name = name;
-    config.r2_buckets[0].bucket_name = `${name}-media`;
+    config.r2_buckets = wedding.features.memories
+      ? [{ binding: "MEDIA", bucket_name: `${name}-media` }]
+      : [];
     if (values.origin) {
       const origin = new URL(values.origin);
       if (
@@ -130,14 +146,15 @@ if (values.deploy) {
       JSON.stringify(updated, null, 2) + "\n",
     );
     // A named R2 binding must already exist; only unnamed bindings auto-provision.
-    command([
-      "r2",
-      "bucket",
-      "create",
-      config.r2_buckets[0].bucket_name,
-      "--config",
-      "wrangler.instance.json",
-    ]);
+    if (wedding.features.memories)
+      command([
+        "r2",
+        "bucket",
+        "create",
+        config.r2_buckets[0].bucket_name,
+        "--config",
+        "wrangler.instance.json",
+      ]);
     // Queues are provisioned automatically by Wrangler on first deploy.
     command([
       "d1",

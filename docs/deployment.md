@@ -24,7 +24,7 @@ The example invitation code is `DEMO-WELCOME`. Demo seeding always uses `--local
 
 ## First Cloudflare deployment
 
-Create a Cloudflare account and enable Workers and R2. R2 onboarding can require billing details even when usage stays within the free allowance. Set a storage budget appropriate to the photos and videos you expect.
+Create a Cloudflare account and enable Workers. Enable R2 when you need memories/photo storage; onboarding can require billing details even when usage stays within the free allowance. Set a storage budget appropriate to the photos and videos you expect. When `features.memories` is false, setup omits R2 so an initial announcement does not require storage activation.
 
 ```sh
 npm run cloudflare:setup
@@ -38,6 +38,8 @@ The **production setup token** is saved in ignored, owner-only `private/producti
 For an agent using an existing Wrangler session, setup can run without prompts: `npm run cloudflare:setup -- --name your-wedding --skip-login --origin https://your-wedding.example`. The origin becomes the canonical URL for authentication and guest links; use that domain after attaching it. The helper parses JSONC and assigns an explicit project-specific media bucket. Keep each checkout's resources separate.
 
 The helper refuses to overwrite an existing instance file, to avoid rotating a live installation's secrets unintentionally. If setup was interrupted, keep the file and inspect the steps below before continuing. Do not delete it casually: it identifies your data resources.
+
+If you initially omitted memories, enable R2 in the dashboard when ready, create a private bucket with `npx wrangler r2 bucket create YOUR-PROJECT-media --config wrangler.instance.json`, and add `{ "binding": "MEDIA", "bucket_name": "YOUR-PROJECT-media" }` to the instance's `r2_buckets` array. Keep public bucket access disabled. Then enable `features.memories` and deploy. Deployment refuses to enable memories without a named MEDIA binding.
 
 This provisioning flow must be exercised in your own Cloudflare account. Repository checks verify local Workers behavior and the compiled bundle; they do not imply that a live account deployment or real email delivery was performed.
 

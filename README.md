@@ -67,7 +67,7 @@ npm run cloudflare:setup
 npm run deploy
 ```
 
-The setup helper provisions your database and secrets; Wrangler provisions the other bindings on deployment. Account-specific configuration stays in an ignored instance file. Then configure your Resend API key, a DNS-verified sending domain and the site origin.
+The setup helper provisions your database, secrets and private media bucket when memories are enabled; Wrangler provisions the email queue on deployment. Disable memories to defer R2 activation for an initial announcement. Account-specific configuration stays in an ignored instance file. Then configure your Resend API key, a DNS-verified sending domain and the site origin.
 
 Follow [deployment.md](docs/deployment.md), including the email verification and recovery steps. Cloudflare/R2 may require billing activation. Live cloud deployment and real email delivery need your accounts; local tests do not substitute for those checks.
 
