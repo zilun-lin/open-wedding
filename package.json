@@ -47,7 +47,7 @@
     "@cloudflare/vite-plugin": "^1.63.2",
     "@react-router/dev": "^8.4.0",
     "@tailwindcss/vite": "^4.2.2",
-    "@types/node": "^22.20.5",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "jsonc-parser": "^3.3.1",
