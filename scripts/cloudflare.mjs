@@ -129,7 +129,16 @@ if (values.deploy) {
       "wrangler.instance.json",
       JSON.stringify(updated, null, 2) + "\n",
     );
-    // R2 and Queues are provisioned automatically by Wrangler on first deploy.
+    // A named R2 binding must already exist; only unnamed bindings auto-provision.
+    command([
+      "r2",
+      "bucket",
+      "create",
+      config.r2_buckets[0].bucket_name,
+      "--config",
+      "wrangler.instance.json",
+    ]);
+    // Queues are provisioned automatically by Wrangler on first deploy.
     command([
       "d1",
       "migrations",

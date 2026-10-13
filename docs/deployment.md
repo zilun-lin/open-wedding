@@ -31,7 +31,7 @@ npm run cloudflare:setup
 npm run deploy
 ```
 
-The setup helper asks for a unique project name, opens Wrangler's Cloudflare login flow, creates/reuses that project's D1 database, applies migrations, and generates production `AUTH_SECRET` and `SETUP_TOKEN` secrets. R2 and Queues use Wrangler's resource provisioning on deployment. Account-specific bindings are stored in ignored `wrangler.instance.json`; the public template remains account-independent.
+The setup helper asks for a unique project name, opens Wrangler's Cloudflare login flow, creates/reuses that project's D1 database, creates its named private R2 bucket, applies migrations, and generates production `AUTH_SECRET` and `SETUP_TOKEN` secrets. Queues use Wrangler's resource provisioning on deployment. Account-specific bindings are stored in ignored `wrangler.instance.json`; the public template remains account-independent.
 
 The **production setup token** is saved in ignored, owner-only `private/production-bootstrap.json`, without printing it in logs. Use it to create your production host account at `/admin`. Local accounts and guest data are not transferred.
 
